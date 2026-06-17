@@ -1,3 +1,5 @@
+import type { GameVariant } from "./variants.js";
+
 /** Player 0 places black stones and moves first; player 1 is white. */
 export type PlayerIndex = 0 | 1;
 
@@ -13,6 +15,16 @@ export interface Move {
  * Deterministic — the server is authoritative and the client mirrors it.
  */
 export interface GameState {
+  /** Which variant this board is (gomoku / tictactoe / connect4). */
+  variant: GameVariant;
+  /** Board width in intersections (board.length === cols * rows). */
+  cols: number;
+  /** Board height in intersections. */
+  rows: number;
+  /** Stones in a row needed to win. */
+  winLength: number;
+  /** Connect Four: moves pick a column and the stone drops to the lowest cell. */
+  gravity: boolean;
   board: (PlayerIndex | null)[];
   /** Whose turn it is to place a stone. */
   turn: PlayerIndex;

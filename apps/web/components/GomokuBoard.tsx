@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BOARD_SIZE, idx, type GameState, type Move } from "@gomokudawgs/engine";
+import { dropRow, idx, type GameState, type Move } from "@gomokudawgs/engine";
 
 interface GomokuBoardProps {
   state: GameState;
@@ -15,6 +15,8 @@ interface GomokuBoardProps {
 // The board is drawn as an SVG so it scales crisply to any size. Stones sit on
 // the line intersections (Gomoku is played on intersections, not in cells).
 const PAD = 0.6; // padding in cell units around the grid lines
+
+// Star points (handicap dots) — only on the full 15×15 Gomoku board.
 const STAR_POINTS: ReadonlyArray<[number, number]> = [
   [3, 3],
   [3, 11],
@@ -23,36 +25,46 @@ const STAR_POINTS: ReadonlyArray<[number, number]> = [
   [7, 7],
 ];
 
-/** Server-authoritative 15×15 Gomoku board. Clicking an empty intersection on
- *  your turn places a stone; the move is sent up and the board re-renders from
- *  the next authoritative snapshot. */
+/** Server-authoritative board for any variant (Gomoku 15×15, Tic-Tac-Toe 3×3,
+ *  or Connect Four 7×6 with gravity). For gravity boards, clicking a column
+ *  drops a stone to the lowest empty cell; otherwise clicking an empty
+ *  intersection places one. Moves are sent up and the board re-renders from the
+ *  next authoritative snapshot. */
 export default function GomokuBoard({ state, interactive, mySeat, onPlay }: GomokuBoardProps) {
   const [hover, setHover] = useState<Move | null>(null);
 
-  const span = BOARD_SIZE - 1 + PAD * 2;
+  const { cols, rows, gravity, board } = state;
+  const spanX = cols - 1 + PAD * 2;
+  const spanY = rows - 1 + PAD * 2;
+  const showStars = state.variant === "gomoku";
   const last = state.lastMove;
   const winSet = useMemo(() => {
     const s = new Set<number>();
-    if (state.winningLine) for (const c of state.winningLine) s.add(idx(c.x, c.y));
+    if (state.winningLine) for (const c of state.winningLine) s.add(idx(c.x, c.y, cols));
     return s;
-  }, [state.winningLine]);
+  }, [state.winningLine, cols]);
 
-  const canPlay = (m: Move) =>
-    interactive && !state.gameOver && state.board[idx(m.x, m.y)] === null;
+  // Where a click on cell (x, y) would actually land — the cell itself, or the
+  // bottom of the column for gravity variants. Null if it isn't playable.
+  const resolveTarget = (x: number, y: number): Move | null => {
+    if (!interactive || state.gameOver) return null;
+    if (gravity) {
+      const r = dropRow(board, x, cols, rows);
+      return r === null ? null : { x, y: r };
+    }
+    return board[idx(x, y, cols)] === null ? { x, y } : null;
+  };
 
   // Stone fill for a seat: black plays first (seat 0), white second (seat 1).
-  const stoneFill = (seat: 0 | 1) =>
-    seat === 0
-      ? "url(#stone-black)"
-      : "url(#stone-white)";
+  const stoneFill = (seat: 0 | 1) => (seat === 0 ? "url(#stone-black)" : "url(#stone-white)");
 
   return (
-    <div className="relative aspect-square h-full max-h-full w-full max-w-full">
+    <div className="relative flex h-full max-h-full w-full max-w-full items-center justify-center">
       <svg
-        viewBox={`0 0 ${span} ${span}`}
+        viewBox={`0 0 ${spanX} ${spanY}`}
         className="h-full w-full rounded-lg"
         role="grid"
-        aria-label="Gomoku board"
+        aria-label={`${state.variant} board`}
       >
         <defs>
           <radialGradient id="stone-black" cx="35%" cy="30%" r="75%">
@@ -72,35 +84,53 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
         </defs>
 
         {/* Wood field */}
-        <rect x="0" y="0" width={span} height={span} rx="0.4" fill="url(#board-wood)" />
+        <rect x="0" y="0" width={spanX} height={spanY} rx="0.4" fill="url(#board-wood)" />
+
+        {/* Column highlight (gravity variants) */}
+        {gravity && hover && (
+          <rect
+            x={PAD + hover.x - 0.5}
+            y={PAD - 0.5}
+            width="1"
+            height={rows}
+            fill="#ffffff"
+            opacity="0.07"
+          />
+        )}
 
         {/* Grid lines */}
         <g stroke="#3a2a14" strokeWidth="0.04" strokeLinecap="round">
-          {Array.from({ length: BOARD_SIZE }, (_, i) => (
-            <g key={i}>
-              <line x1={PAD} y1={PAD + i} x2={PAD + BOARD_SIZE - 1} y2={PAD + i} />
-              <line x1={PAD + i} y1={PAD} x2={PAD + i} y2={PAD + BOARD_SIZE - 1} />
-            </g>
+          {Array.from({ length: rows }, (_, i) => (
+            <line key={`h${i}`} x1={PAD} y1={PAD + i} x2={PAD + cols - 1} y2={PAD + i} />
+          ))}
+          {Array.from({ length: cols }, (_, i) => (
+            <line key={`v${i}`} x1={PAD + i} y1={PAD} x2={PAD + i} y2={PAD + rows - 1} />
           ))}
         </g>
 
-        {/* Star points */}
-        <g fill="#3a2a14">
-          {STAR_POINTS.map(([x, y]) => (
-            <circle key={`${x}-${y}`} cx={PAD + x} cy={PAD + y} r="0.1" />
-          ))}
-        </g>
+        {/* Star points (Gomoku only) */}
+        {showStars && (
+          <g fill="#3a2a14">
+            {STAR_POINTS.map(([x, y]) => (
+              <circle key={`${x}-${y}`} cx={PAD + x} cy={PAD + y} r="0.1" />
+            ))}
+          </g>
+        )}
 
         {/* Stones + click targets */}
-        {Array.from({ length: BOARD_SIZE }, (_, y) =>
-          Array.from({ length: BOARD_SIZE }, (_, x) => {
-            const cell = state.board[idx(x, y)];
+        {Array.from({ length: rows }, (_, y) =>
+          Array.from({ length: cols }, (_, x) => {
+            const cell = board[idx(x, y, cols)];
             const cx = PAD + x;
             const cy = PAD + y;
             const isLast = last && last.x === x && last.y === y;
-            const isWin = winSet.has(idx(x, y));
-            const playable = canPlay({ x, y });
-            const isHover = hover && hover.x === x && hover.y === y && playable;
+            const isWin = winSet.has(idx(x, y, cols));
+            const target = resolveTarget(x, y);
+            const playable = target !== null;
+            // Ghost shows at the landing cell (this cell for placement games, or
+            // the column's drop cell for gravity games).
+            const isGhost =
+              hover != null && target != null && target.x === hover.x && target.y === hover.y;
             return (
               <g key={`${x}-${y}`}>
                 {cell !== null && (
@@ -126,8 +156,8 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
                     )}
                   </>
                 )}
-                {/* Hover ghost stone */}
-                {isHover && mySeat != null && (
+                {/* Hover ghost stone at the landing cell */}
+                {isGhost && mySeat != null && cell === null && (
                   <circle cx={cx} cy={cy} r="0.4" fill={stoneFill(mySeat)} opacity="0.4" />
                 )}
                 {/* Invisible hit area */}
@@ -140,7 +170,7 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
                   className={playable ? "cursor-pointer" : "cursor-default"}
                   onMouseEnter={() => setHover({ x, y })}
                   onMouseLeave={() => setHover((h) => (h && h.x === x && h.y === y ? null : h))}
-                  onClick={() => playable && onPlay({ x, y })}
+                  onClick={() => target && onPlay(target)}
                 />
               </g>
             );

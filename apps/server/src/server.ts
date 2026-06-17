@@ -52,10 +52,13 @@ export function createGomokuDawgsServer(
   };
 
   const httpServer = createHttpServer((req, res) => {
-    const origin = req.headers.origin;
-    const cors = {
-      "access-control-allow-origin": isAllowedOrigin(origin) ? origin ?? "*" : "null",
-    };
+    // /health and /leaderboard are public, read-only, credential-less JSON, so
+    // they're served with a wildcard CORS header. This deliberately does NOT
+    // depend on CORS_ORIGINS: the WebSocket transport isn't subject to browser
+    // CORS, so the game/lobby work even when the deployed web origin isn't
+    // listed — but a plain fetch() is, which previously broke ONLY the
+    // leaderboard whenever CORS_ORIGINS wasn't kept in sync with the web URL.
+    const cors = { "access-control-allow-origin": "*" };
     if (req.url === "/health") {
       res.writeHead(200, { "content-type": "application/json", ...cors });
       res.end(JSON.stringify({ ok: true, chainEnabled: config.chainEnabled }));

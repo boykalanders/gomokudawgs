@@ -26,7 +26,7 @@ import {
   GOMOKUDAWGS_ADDRESS,
 } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
-import { inviteLink } from "@/lib/gamecode";
+import { inviteLink, variantFromId, VARIANTS } from "@/lib/gamecode";
 import { useNftAvatar } from "@/lib/useNftAvatar";
 import { log } from "@/lib/log";
 import { getSocket } from "@/lib/socket";
@@ -44,17 +44,27 @@ type Phase = "loading" | "notfound" | "waiting" | "invite" | "full" | "over" | "
 /** Decoded on-chain game tuple from GomokuDawgs.games(gameId). */
 type ChainGame = readonly [string, string, boolean, string, bigint, ...unknown[]];
 
-/** How a game ended, phrased for the end-game modal. */
-const REASON_WORD: Record<GameOverReason, string> = {
-  win: "five in a row",
-  resign: "resignation",
-  timeout: "the move clock",
-  draw: "a draw",
-};
+/** How a game ended, phrased for the end-game modal (win wording depends on the
+ *  variant's win length — "five in a row" for Gomoku, "three" for Tic-Tac-Toe). */
+function reasonWordFor(reason: GameOverReason, winLength: number): string {
+  const words = ["", "one", "two", "three", "four", "five"];
+  const n = words[winLength] ?? `${winLength}`;
+  switch (reason) {
+    case "win":
+      return `${n} in a row`;
+    case "resign":
+      return "resignation";
+    case "timeout":
+      return "the move clock";
+    case "draw":
+      return "a draw";
+  }
+}
 
 function GameRoom() {
   const params = useParams<{ id: string }>();
   const gameId = params.id;
+  const variantSpec = VARIANTS[variantFromId(gameId)];
   const router = useRouter();
   const { address } = useAccount();
   const publicClient = usePublicClient();
@@ -402,7 +412,9 @@ function GameRoom() {
       return (
         <Card>
           <h2 className="heading-display text-2xl">Waiting for an opponent…</h2>
-          <p className="text-xs uppercase tracking-widest text-gold-bright/80">Gomoku · five in a row</p>
+          <p className="text-xs uppercase tracking-widest text-gold-bright/80">
+            {variantSpec.label} · {variantSpec.blurb}
+          </p>
           <p className="text-xs text-amber-100/60">Share this code (or link) to challenge someone.</p>
           <div className="rounded-lg border border-gold/50 bg-mahogany-deep px-4 py-3 font-mono text-2xl font-bold tracking-widest text-gold-bright">
             {gameId}
@@ -437,7 +449,9 @@ function GameRoom() {
         <Card>
           <div className="text-4xl">⚫️</div>
           <h2 className="heading-display text-2xl">You&rsquo;ve been challenged</h2>
-          <p className="text-xs uppercase tracking-widest text-gold-bright/80">Gomoku · five in a row</p>
+          <p className="text-xs uppercase tracking-widest text-gold-bright/80">
+            {variantSpec.label} · {variantSpec.blurb}
+          </p>
           <p className="text-sm text-amber-100/60">
             Game <span className="font-mono text-gold-bright">{gameId}</span>
             {onchainStake !== null && (
@@ -549,7 +563,7 @@ function GameRoom() {
   const winnerDisplay = over
     ? winnerPlayer?.username?.trim() || shortAddress(over.winner)
     : "";
-  const reasonWord = over ? REASON_WORD[over.reason] : "";
+  const reasonWord = over ? reasonWordFor(over.reason, state.winLength) : "";
   const potWin = snapshot.stake
     ? formatStake((BigInt(snapshot.stake) * 2n * 8000n) / 10000n)
     : null;

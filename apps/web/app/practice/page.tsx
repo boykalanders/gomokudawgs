@@ -6,7 +6,10 @@ import {
   applyMove,
   createInitialState,
   validateMove,
+  VARIANTS,
+  VARIANT_LIST,
   type GameState,
+  type GameVariant,
   type Move,
 } from "@gomokudawgs/engine";
 import GameShell from "@/components/GameShell";
@@ -24,15 +27,29 @@ const PLAYERS = [
  */
 export default function PracticePage() {
   const router = useRouter();
-  const [state, setState] = useState<GameState>(() => createInitialState());
+  const [variant, setVariant] = useState<GameVariant>("gomoku");
+  const [state, setState] = useState<GameState>(() => createInitialState("gomoku"));
   const [message, setMessage] = useState<string | null>(null);
-  // Games won across re-racks.
+  // Games won across resets.
   const [wins, setWins] = useState<[number, number]>([0, 0]);
 
-  const reset = useCallback(() => {
-    setState(createInitialState());
-    setMessage(null);
-  }, []);
+  const reset = useCallback(
+    (v: GameVariant = variant) => {
+      setState(createInitialState(v));
+      setMessage(null);
+    },
+    [variant]
+  );
+
+  const selectVariant = useCallback(
+    (v: GameVariant) => {
+      if (v === variant) return;
+      setVariant(v);
+      setWins([0, 0]);
+      reset(v);
+    },
+    [variant, reset]
+  );
 
   // Dev/design preview: /practice?preview=win shows the winner popup.
   useEffect(() => {
@@ -83,7 +100,11 @@ export default function PracticePage() {
       statusText={turnLabel}
       banner={message}
       menuItems={[
-        { label: "New game", onClick: reset },
+        { label: "New game", onClick: () => reset() },
+        ...VARIANT_LIST.filter((v) => v.key !== variant).map((v) => ({
+          label: `Switch to ${v.label}`,
+          onClick: () => selectVariant(v.key),
+        })),
         { label: "Exit to lobby", onClick: () => router.push("/lobby") },
       ]}
       onPlay={play}
@@ -96,7 +117,7 @@ export default function PracticePage() {
             amountLabel="+200.00 $DDAWGS"
             actions={
               <>
-                <button className="btn-gold" onClick={reset}>
+                <button className="btn-gold" onClick={() => reset()}>
                   Play again
                 </button>
                 <button className="btn-outline" onClick={() => router.push("/lobby")}>

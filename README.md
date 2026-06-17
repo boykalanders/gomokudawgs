@@ -11,9 +11,15 @@ shared with the sibling **PoolDawgs** project — only the game itself differs.
 
 ## The game
 
-- **15×15 board**, played on the line intersections.
-- **Freestyle Gomoku** — first player to get **five (or more) in a row**
-  horizontally, vertically, or diagonally wins. Overlines (six+) also win.
+Two variants share one engine — same rules (place stones, first to N-in-a-row
+wins), differing only in board size and win length. The code prefix picks one:
+
+| Variant | Prefix | Board | Win |
+|---|---|---|---|
+| **Gomoku** | `GK-…` | 15×15 | five in a row |
+| **Tic-Tac-Toe** | `TT-…` | 3×3 | three in a row |
+
+- Played on the line **intersections**; freestyle (overlines also win).
 - **Black moves first** (seat 0); **white** is seat 1. Turn-based, one stone per
   turn, no captures.
 - **1-minute move clock** per turn — run out and you forfeit.
@@ -39,7 +45,7 @@ apps/web/           Next.js frontend — wallet gate, lobby, game view, chat,
                     practice board (local engine), leaderboard, profile
 apps/server/        Authoritative game server — Socket.IO rooms, move clock,
                     chain event listener, relayer (signs win vouchers)
-packages/engine/    Deterministic Gomoku engine (15×15, no variants) — shared
+packages/engine/    Deterministic engine + variants (Gomoku 15×15 / TTT 3×3)
 packages/contracts/ GomokuDawgs.sol (UUPS proxy) + Hardhat tests + deploy
 packages/shared/    Types, socket event contracts, curated ABI
 ```
@@ -200,9 +206,11 @@ then update the registry and the server's `CONTRACT_ADDRESS`.
 Matching is the ChessDawgs **create-with-an-ID / join-by-ID** model, plus a
 public browse list on top:
 
-- **Create** generates a short, shareable game code (e.g. `GD-7F3K2`) — that
-  code *is* the on-chain `gameId`. The creator waits on a "share this code"
-  card and is dropped into the board automatically when an opponent joins.
+- **Create** picks a variant (Gomoku / Tic-Tac-Toe) and generates a short,
+  shareable game code whose prefix encodes the variant (e.g. `GK-7F3K2`,
+  `TT-7F3K2`) — that code *is* the on-chain `gameId`, and the server builds the
+  right board from it. The creator waits on a "share this code" card and is
+  dropped into the board automatically when an opponent joins.
 - **Join by code / invite link** — paste a code (or a `…/lobby?join=CODE`
   link) to challenge someone directly.
 - **Public lobby** — every open table is also listed live (mirrored from chain

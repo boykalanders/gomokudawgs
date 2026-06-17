@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VARIANT_LIST } from "@gomokudawgs/engine";
 
 const FEATURES = [
   {
@@ -43,10 +44,15 @@ export default function HomePage() {
             <span className="text-burn">burned forever</span>.
           </p>
 
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 rounded-full border border-gold-dim/40 bg-emerald-deep/60 px-4 py-1.5 text-sm font-semibold text-cream/80">
-              15×15 board · freestyle five-in-a-row
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {VARIANT_LIST.map((v) => (
+              <span
+                key={v.key}
+                className="flex items-center gap-2 rounded-full border border-gold-dim/40 bg-emerald-deep/60 px-4 py-1.5 text-sm font-semibold text-cream/80"
+              >
+                {v.label} · {v.blurb}
+              </span>
+            ))}
           </div>
 
           <div className="mt-2 flex flex-wrap items-center justify-center gap-5">

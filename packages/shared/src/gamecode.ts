@@ -1,11 +1,17 @@
 // Short, human-shareable game codes — these ARE the on-chain gameId string.
-// ChessDawgs-style: create → get a code → an opponent joins with it. Gomoku has
-// a single mode, so codes are simply "GD-XXXXX".
+// ChessDawgs-style: create → get a code → an opponent joins with it. The
+// two-letter prefix encodes the variant (GK = Gomoku, TT = Tic-Tac-Toe), so the
+// server builds the right board from the code alone.
+import {
+  DEFAULT_VARIANT,
+  VARIANTS,
+  variantByPrefix,
+  type GameVariant,
+} from "@gomokudawgs/engine";
 
 // Ambiguous characters (I, L, O, 0, 1) are excluded so codes read aloud / type
 // cleanly.
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
-const PREFIX = "GD";
 
 // Web Crypto is a global in both the browser and Node 18+, but the shared
 // package compiles with lib: ["ES2022"] (no DOM), so reach it through a
@@ -22,11 +28,19 @@ function randomBytes(n: number): Uint8Array {
   return bytes;
 }
 
-/** Mint a fresh game code, e.g. "GD-9PQ4K". */
-export function newGameCode(): string {
+/** Mint a fresh game code for a variant, e.g. "GK-9PQ4K" / "TT-9PQ4K". */
+export function newGameCode(variant: GameVariant = DEFAULT_VARIANT): string {
+  const prefix = VARIANTS[variant].prefix;
   let s = "";
   for (const b of randomBytes(5)) s += ALPHABET[b % ALPHABET.length];
-  return `${PREFIX}-${s}`;
+  return `${prefix}-${s}`;
+}
+
+/** Which variant a gameId encodes (by its prefix); defaults to Gomoku. */
+export function variantFromId(gameId: string): GameVariant {
+  const m = gameId.toUpperCase().match(/^([A-Z]{2})-/);
+  if (m) return variantByPrefix(m[1]) ?? DEFAULT_VARIANT;
+  return DEFAULT_VARIANT;
 }
 
 /** Accept a raw code, a prefixed code, or a pasted invite link → canonical code. */
@@ -36,8 +50,10 @@ export function normalizeCode(input: string): string {
   if (fromLink) t = decodeURIComponent(fromLink[1]);
   t = t.toUpperCase().replace(/\s+/g, "");
   if (!t) return "";
-  if (t.startsWith(`${PREFIX}-`)) return t;
-  // Bare body or stray prefix → normalize to GD-<body>.
+  // A known variant prefix → keep it as-is.
+  const m = t.match(/^([A-Z]{2})-(.+)$/);
+  if (m && variantByPrefix(m[1])) return `${m[1]}-${m[2]}`;
+  // Bare body or unknown prefix → assume the default variant.
   const body = t.includes("-") ? t.split("-").slice(1).join("-") : t;
-  return `${PREFIX}-${body}`;
+  return `${VARIANTS[DEFAULT_VARIANT].prefix}-${body}`;
 }

@@ -7,13 +7,14 @@ import {
   type Move,
   type PlayerIndex,
 } from "@gomokudawgs/engine";
-import type {
-  Address,
-  ChatMessage,
-  GameOverReason,
-  MoveBroadcast,
-  RoomSnapshot,
-  ServerError,
+import {
+  variantFromId,
+  type Address,
+  type ChatMessage,
+  type GameOverReason,
+  type MoveBroadcast,
+  type RoomSnapshot,
+  type ServerError,
 } from "@gomokudawgs/shared";
 import type { Relayer } from "./relayer.js";
 
@@ -65,7 +66,9 @@ export class GameRoom {
   ) {
     this.gameId = gameId;
     this.seats = seats;
-    this.state = createInitialState();
+    // The gameId's prefix encodes the variant (GK = Gomoku, TT = Tic-Tac-Toe),
+    // so the right-sized board is built straight from the code.
+    this.state = createInitialState(variantFromId(gameId));
     this.restartClock();
   }
 

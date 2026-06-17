@@ -23,7 +23,14 @@ import {
   GOMOKUDAWGS_ADDRESS,
 } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
-import { newGameCode, normalizeCode } from "@/lib/gamecode";
+import {
+  newGameCode,
+  normalizeCode,
+  variantFromId,
+  VARIANTS,
+  VARIANT_LIST,
+  type GameVariant,
+} from "@/lib/gamecode";
 import { log } from "@/lib/log";
 import { getSocket } from "@/lib/socket";
 
@@ -42,6 +49,7 @@ function Lobby() {
   const { writeContractAsync } = useWriteContract();
 
   const [games, setGames] = useState<LobbyGame[]>([]);
+  const [variant, setVariant] = useState<GameVariant>("gomoku");
   const [stakeInput, setStakeInput] = useState("100");
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -86,8 +94,9 @@ function Lobby() {
       const stake = parseEther(stakeInput || "0");
       if (stake <= 0n) throw new Error("Enter a stake");
 
-      // Pick a code that isn't already taken on-chain.
-      let gameId = newGameCode();
+      // Pick a code that isn't already taken on-chain. The prefix encodes the
+      // chosen variant, so the server builds the right board from the gameId.
+      let gameId = newGameCode(variant);
       for (let i = 0; i < 5; i++) {
         const g = (await publicClient.readContract({
           address: GOMOKUDAWGS_ADDRESS,
@@ -96,7 +105,7 @@ function Lobby() {
           args: [gameId],
         })) as unknown as readonly [string, ...unknown[]];
         if (g[0] === zeroAddress) break;
-        gameId = newGameCode();
+        gameId = newGameCode(variant);
       }
 
       const allowance = (await publicClient.readContract({
@@ -189,6 +198,7 @@ function Lobby() {
                   <div className="min-w-0 flex-1">
                     <p className="font-mono font-semibold text-amber-50">{game.gameId}</p>
                     <p className="text-xs text-amber-100/60">
+                      {VARIANTS[variantFromId(game.gameId)].label} ·{" "}
                       {game.playerOneName?.trim() || shortAddress(game.playerOne)}
                       {mine ? " · your table" : " · waiting for an opponent"}
                     </p>
@@ -223,6 +233,26 @@ function Lobby() {
           {CONTRACTS_CONFIGURED ? (
             <>
               <label className="mb-1 block text-xs uppercase tracking-widest text-amber-100/60">
+                Game
+              </label>
+              <div className="mb-4 grid grid-cols-3 gap-2">
+                {VARIANT_LIST.map((v) => (
+                  <button
+                    key={v.key}
+                    type="button"
+                    onClick={() => setVariant(v.key)}
+                    aria-pressed={variant === v.key}
+                    className={`rounded-lg border px-2 py-2 text-xs font-semibold leading-tight transition ${
+                      variant === v.key
+                        ? "border-gold bg-gold/15 text-gold-bright"
+                        : "border-gold-dim/40 bg-mahogany-deep text-amber-100/70 hover:border-gold/60"
+                    }`}
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <label className="mb-1 block text-xs uppercase tracking-widest text-amber-100/60">
                 Stake ($DDawgs)
               </label>
               <input
@@ -235,8 +265,9 @@ function Lobby() {
                 {busy === "create" ? "Confirm in wallet…" : "Stake & create"}
               </button>
               <p className="mt-3 text-xs text-amber-100/50">
-                Opens a Gomoku board — generates a shareable code, escrows your
-                stake, and lets you share or cancel any time before someone joins.
+                Opens a {VARIANTS[variant].label} board ({VARIANTS[variant].blurb}) —
+                generates a shareable code, escrows your stake, and lets you share
+                or cancel any time before someone joins.
               </p>
             </>
           ) : (
@@ -266,7 +297,7 @@ function Lobby() {
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && joinByCode()}
-                placeholder="GD-XXXXX"
+                placeholder="GK-XXXXX / TT-XXXXX"
                 className="min-w-0 flex-1 rounded-lg border border-gold-dim/40 bg-mahogany-deep px-3 py-2 font-mono uppercase outline-none focus:border-gold"
               />
               <button className="btn-gold" disabled={!joinCode.trim()} onClick={joinByCode}>

@@ -1,16 +1,36 @@
-import { BOARD_SIZE, CELL_COUNT, WIN_LENGTH } from "./constants.js";
+import { DEFAULT_VARIANT, VARIANTS, type GameVariant } from "./variants.js";
 import type { GameState, Move, MoveResult, PlayerIndex } from "./types.js";
 
-/** Row-major board index for (x, y). */
-export const idx = (x: number, y: number): number => y * BOARD_SIZE + x;
+/** Row-major board index for (x, y) on a board `cols` wide. */
+export const idx = (x: number, y: number, cols: number): number => y * cols + x;
 
-export const inBounds = (x: number, y: number): boolean =>
-  x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE;
+export const inBounds = (x: number, y: number, cols: number, rows: number): boolean =>
+  x >= 0 && x < cols && y >= 0 && y < rows;
 
-/** Fresh, empty board — black (player 0) to move. */
-export function createInitialState(): GameState {
+/** Lowest empty row in column `x` (gravity), or null if the column is full.
+ *  Row `rows-1` is the floor; discs stack upward from there. */
+export function dropRow(
+  board: readonly (PlayerIndex | null)[],
+  x: number,
+  cols: number,
+  rows: number
+): number | null {
+  for (let y = rows - 1; y >= 0; y--) {
+    if (board[idx(x, y, cols)] === null) return y;
+  }
+  return null;
+}
+
+/** Fresh, empty board for `variant` — black (player 0) to move. */
+export function createInitialState(variant: GameVariant = DEFAULT_VARIANT): GameState {
+  const spec = VARIANTS[variant];
   return {
-    board: new Array(CELL_COUNT).fill(null),
+    variant,
+    cols: spec.cols,
+    rows: spec.rows,
+    winLength: spec.winLength,
+    gravity: spec.gravity,
+    board: new Array(spec.cols * spec.rows).fill(null),
     turn: 0,
     gameOver: false,
     winner: null,
@@ -26,10 +46,22 @@ export function validateMove(
 ): { ok: true } | { ok: false; reason: string } {
   if (state.gameOver) return { ok: false, reason: "game is over" };
   const { x, y } = move;
-  if (!Number.isInteger(x) || !Number.isInteger(y) || !inBounds(x, y)) {
+  if (state.gravity) {
+    // Only the column matters; the row is resolved by gravity.
+    if (!Number.isInteger(x) || x < 0 || x >= state.cols) {
+      return { ok: false, reason: "off the board" };
+    }
+    if (dropRow(state.board, x, state.cols, state.rows) === null) {
+      return { ok: false, reason: "column is full" };
+    }
+    return { ok: true };
+  }
+  if (!Number.isInteger(x) || !Number.isInteger(y) || !inBounds(x, y, state.cols, state.rows)) {
     return { ok: false, reason: "off the board" };
   }
-  if (state.board[idx(x, y)] !== null) return { ok: false, reason: "cell already taken" };
+  if (state.board[idx(x, y, state.cols)] !== null) {
+    return { ok: false, reason: "cell already taken" };
+  }
   return { ok: true };
 }
 
@@ -41,52 +73,67 @@ const DIRECTIONS: ReadonlyArray<readonly [number, number]> = [
   [1, -1],
 ];
 
-/** Returns the winning run (≥ WIN_LENGTH cells) through (x, y), or null. */
+/** Returns the winning run (≥ winLength cells) through (x, y), or null. */
 export function winningLine(
   board: readonly (PlayerIndex | null)[],
   x: number,
   y: number,
-  player: PlayerIndex
+  player: PlayerIndex,
+  cols: number,
+  rows: number,
+  winLength: number
 ): Move[] | null {
   for (const [dx, dy] of DIRECTIONS) {
     const line: Move[] = [{ x, y }];
     for (let s = 1; ; s++) {
       const nx = x + dx * s;
       const ny = y + dy * s;
-      if (inBounds(nx, ny) && board[idx(nx, ny)] === player) line.push({ x: nx, y: ny });
-      else break;
+      if (inBounds(nx, ny, cols, rows) && board[idx(nx, ny, cols)] === player) {
+        line.push({ x: nx, y: ny });
+      } else break;
     }
     for (let s = 1; ; s++) {
       const nx = x - dx * s;
       const ny = y - dy * s;
-      if (inBounds(nx, ny) && board[idx(nx, ny)] === player) line.unshift({ x: nx, y: ny });
-      else break;
+      if (inBounds(nx, ny, cols, rows) && board[idx(nx, ny, cols)] === player) {
+        line.unshift({ x: nx, y: ny });
+      } else break;
     }
-    if (line.length >= WIN_LENGTH) return line;
+    if (line.length >= winLength) return line;
   }
   return null;
 }
 
-/** Place the current player's stone (validateMove must have passed). */
+/** Place the current player's stone (validateMove must have passed). For
+ *  gravity variants the move's column is used and the row is resolved here. */
 export function applyMove(state: GameState, move: Move): MoveResult {
+  const { cols, rows } = state;
   const board = state.board.slice();
   const player = state.turn;
-  board[idx(move.x, move.y)] = player;
 
-  const line = winningLine(board, move.x, move.y, player);
+  const px = move.x;
+  const py = state.gravity ? (dropRow(board, move.x, cols, rows) as number) : move.y;
+  board[idx(px, py, cols)] = player;
+
+  const line = winningLine(board, px, py, player, cols, rows, state.winLength);
   const moveCount = state.moveCount + 1;
-  const draw = !line && moveCount >= CELL_COUNT;
+  const draw = !line && moveCount >= cols * rows;
   const gameOver = Boolean(line) || draw;
   const winner = line ? player : null;
   const nextTurn = (player === 0 ? 1 : 0) as PlayerIndex;
 
   return {
     endState: {
+      variant: state.variant,
+      cols,
+      rows,
+      winLength: state.winLength,
+      gravity: state.gravity,
       board,
       turn: gameOver ? player : nextTurn,
       gameOver,
       winner,
-      lastMove: move,
+      lastMove: { x: px, y: py },
       winningLine: line,
       moveCount,
     },
