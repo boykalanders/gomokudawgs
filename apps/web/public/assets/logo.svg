@@ -45,6 +45,6 @@
   <circle cx="144" cy="56" r="11" fill="url(#lblack)"/>
 
   <!-- Wordmark -->
-  <text x="214" y="94" font-family="Cinzel, Georgia, 'Times New Roman', serif" font-size="62" font-weight="700" letter-spacing="3" fill="url(#lgold)">GOMOKU</text>
-  <text x="216" y="142" font-family="Cinzel, Georgia, serif" font-size="40" font-weight="600" letter-spacing="22" fill="#f5ecd6">DAWGS</text>
+  <text x="216" y="92" font-family="Cinzel, Georgia, 'Times New Roman', serif" font-size="86" font-weight="700" letter-spacing="8" fill="url(#lgold)">ROW</text>
+  <text x="218" y="142" font-family="Cinzel, Georgia, serif" font-size="36" font-weight="600" letter-spacing="17" fill="#f5ecd6">DAWGS</text>
 </svg>

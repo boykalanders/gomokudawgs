@@ -20,5 +20,5 @@
   <circle cx="396" cy="100" r="15" fill="#f5efe0" stroke="#e8c547" stroke-width="1.5"/>
 
   <text x="230" y="100" text-anchor="middle" dominant-baseline="middle" font-family="Cinzel, Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" letter-spacing="10" fill="url(#pgold)">PLAY</text>
-  <text x="230" y="158" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="16" font-weight="600" letter-spacing="8" fill="#d8cba8">FIVE IN A ROW</text>
+  <text x="230" y="158" text-anchor="middle" font-family="Cinzel, Georgia, serif" font-size="16" font-weight="600" letter-spacing="8" fill="#d8cba8">LINE THEM UP</text>
 </svg>

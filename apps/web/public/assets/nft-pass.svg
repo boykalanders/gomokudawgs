@@ -26,7 +26,7 @@
   <rect x="14" y="14" width="452" height="452" rx="28" fill="none" stroke="url(#gold)" stroke-width="3"/>
   <rect x="26" y="26" width="428" height="428" rx="22" fill="none" stroke="#e8c547" stroke-width="1" opacity="0.35"/>
 
-  <!-- Gomoku board emblem with a winning diagonal of five stones -->
+  <!-- Row Dawgs emblem: a winning diagonal of five stones on a board -->
   <rect x="148" y="116" width="184" height="184" rx="14" fill="url(#board)" stroke="url(#gold)" stroke-width="4"/>
   <g stroke="#3a2a14" stroke-width="2.4" stroke-linecap="round" opacity="0.9">
     <line x1="176" y1="144" x2="304" y2="144"/>
@@ -46,6 +46,6 @@
   <circle cx="272" cy="176" r="14" fill="url(#pwhite)"/>
   <circle cx="304" cy="144" r="14" fill="url(#pblack)"/>
 
-  <text x="240" y="372" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" letter-spacing="4" fill="url(#gold)">GOMOKU DAWGS</text>
+  <text x="240" y="372" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700" letter-spacing="4" fill="url(#gold)">ROW DAWGS</text>
   <text x="240" y="404" text-anchor="middle" font-family="Georgia, serif" font-size="17" letter-spacing="7" fill="#d8cba8">MEMBERSHIP PASS</text>
 </svg>
