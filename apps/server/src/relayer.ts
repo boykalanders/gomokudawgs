@@ -9,6 +9,11 @@ export interface Relayer {
    * contract validates the recovered signer == resultSigner. Null in dev mode.
    */
   signResult(gameId: string, winner: Address): Promise<string | null>;
+  /**
+   * Sign a draw voucher (EIP-712) either player redeems via claimDrawSigned for
+   * their 40% share. Like signResult, this only signs off-chain. Null in dev.
+   */
+  signDraw(gameId: string): Promise<string | null>;
   /** Legacy owner/operator path: record the winner on-chain. Kept as a backstop. */
   finishGame(gameId: string, winner: Address): Promise<string | null>;
 }
@@ -29,6 +34,10 @@ export function createRelayer(config: ServerConfig): Relayer {
     return {
       async signResult(gameId, winner) {
         console.log(`[relayer:dev] signResult(${gameId}, ${winner}) — no chain/key configured`);
+        return null;
+      },
+      async signDraw(gameId) {
+        console.log(`[relayer:dev] signDraw(${gameId}) — no chain/key configured`);
         return null;
       },
       async finishGame(gameId, winner) {
@@ -52,25 +61,37 @@ export function createRelayer(config: ServerConfig): Relayer {
   let chainIdPromise: Promise<bigint> | null = null;
   const chainId = () => (chainIdPromise ??= provider.getNetwork().then((n) => n.chainId));
 
-  const types = {
+  const resultTypes = {
     Result: [
       { name: "gameId", type: "string" },
       { name: "winner", type: "address" },
     ],
   };
+  const drawTypes = {
+    Draw: [{ name: "gameId", type: "string" }],
+  };
+  const domain = async () => ({
+    name: "GomokuDawgs",
+    version: "1",
+    chainId: await chainId(),
+    verifyingContract: config.contractAddress!,
+  });
 
   return {
     async signResult(gameId, winner) {
       try {
-        const domain = {
-          name: "GomokuDawgs",
-          version: "1",
-          chainId: await chainId(),
-          verifyingContract: config.contractAddress!,
-        };
-        return await wallet.signTypedData(domain, types, { gameId, winner });
+        return await wallet.signTypedData(await domain(), resultTypes, { gameId, winner });
       } catch (error) {
         console.error(`[relayer] signResult(${gameId}) failed`, error);
+        return null;
+      }
+    },
+
+    async signDraw(gameId) {
+      try {
+        return await wallet.signTypedData(await domain(), drawTypes, { gameId });
+      } catch (error) {
+        console.error(`[relayer] signDraw(${gameId}) failed`, error);
         return null;
       }
     },

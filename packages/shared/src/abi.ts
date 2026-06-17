@@ -143,6 +143,18 @@ export const GOMOKU_DAWGS_ABI = [
     inputs: [{ name: "gameId", type: "string" }],
     outputs: [],
   },
+  {
+    // Either player redeems a backend EIP-712 Draw voucher → 40% each, 10%
+    // company, 10% burn. First redemption takes the house cuts.
+    type: "function",
+    name: "claimDrawSigned",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "gameId", type: "string" },
+      { name: "signature", type: "bytes" },
+    ],
+    outputs: [],
+  },
   // ── backend authority (owner) ──
   {
     type: "function",

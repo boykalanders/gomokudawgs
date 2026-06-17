@@ -94,6 +94,8 @@ contract GomokuDawgs is
     bytes32 private constant RESULT_TYPEHASH =
         keccak256("Result(string gameId,address winner)");
 
+    bytes32 private constant DRAW_TYPEHASH = keccak256("Draw(string gameId)");
+
     event GameCreated(string gameId, address indexed playerOne, uint256 stake);
     event GameJoined(string gameId, address indexed playerTwo);
     event GameFinished(string gameId, address winner, uint256 reward);
@@ -272,6 +274,57 @@ contract GomokuDawgs is
         rewardToken.safeTransfer(poolAddress, (pot * BURN_PERCENT) / 100);
 
         emit GameFinished(gameId, msg.sender, share);
+    }
+
+    /// @notice Draw settlement with a backend voucher — the gravity/board-full
+    ///         analogue of claimRewardSigned. The backend signs an EIP-712
+    ///         Draw(gameId) off-chain when the engine reports a draw (a full
+    ///         board with no line — common in Tic-Tac-Toe). EITHER player redeems
+    ///         it: the first redemption finalises the draw and takes the 10%
+    ///         company + 10% burn cuts; each player then pulls their 40% share.
+    function claimDrawSigned(string memory gameId, bytes calldata signature)
+        external
+        nonReentrant
+    {
+        Game storage g = games[gameId];
+        require(g.playerOne != address(0) && g.playerTwo != address(0), "game not active");
+        require(msg.sender == g.playerOne || msg.sender == g.playerTwo, "not a player");
+        require(resultSigner != address(0), "signer unset");
+        require(!g.rewardClaimed, "already claimed");
+        // OK only if unsettled, or already settled AS a draw (second claimer).
+        require(!g.isCompleted || g.drawCompleted, "already settled");
+
+        bytes32 digest = _hashTypedDataV4(
+            keccak256(abi.encode(DRAW_TYPEHASH, keccak256(bytes(gameId))))
+        );
+        require(ECDSA.recover(digest, signature) == resultSigner, "bad voucher");
+
+        // First redemption finalises the draw and takes the house cuts.
+        if (!g.drawCompleted) {
+            g.isCompleted = true;
+            g.drawCompleted = true;
+            completedAt[gameId] = block.timestamp;
+            uint256 pot = g.stake * 2;
+            uint256 companyShare = (pot * COMPANY_PERCENT) / 100;
+            uint256 burnShare = (pot * BURN_PERCENT) / 100;
+            rewardToken.safeTransfer(companyWallet, companyShare);
+            rewardToken.safeTransfer(poolAddress, burnShare);
+            emit GameExited(gameId, companyShare, burnShare);
+        }
+
+        // Pay the caller their 40% share (once).
+        if (msg.sender == g.playerOne) {
+            require(!g.playerOneClaimed, "already claimed");
+            g.playerOneClaimed = true;
+        } else {
+            require(!g.playerTwoClaimed, "already claimed");
+            g.playerTwoClaimed = true;
+        }
+        playerPaid[gameId][msg.sender] = true;
+
+        uint256 amount = _drawShare(g.stake);
+        rewardToken.safeTransfer(msg.sender, amount);
+        emit DrawRewardClaimed(gameId, msg.sender, amount);
     }
 
     // ────────────── exit/draw flow (ChessDawgs template parity) ──────────────

@@ -14,6 +14,7 @@ const POT = STAKE * 2n;
 const WINNER_SHARE = (POT * 80n) / 100n;
 const COMPANY_SHARE = (POT * 10n) / 100n;
 const BURN_SHARE = (POT * 10n) / 100n;
+const DRAW_SHARE = (POT * 40n) / 100n; // each player on a draw
 const GAME_ID = "pool-game-001";
 const ABANDONMENT_TIMEOUT = 3600;
 
@@ -190,6 +191,49 @@ describe("GomokuDawgs", () => {
       await expect(
         pool.connect(owner).finishGame(GAME_ID, p2.address)
       ).to.be.revertedWith("game completed");
+    });
+  });
+
+  describe("draw voucher (claimDrawSigned)", () => {
+    const drawTypes = { Draw: [{ name: "gameId", type: "string" }] };
+    async function drawDomain() {
+      return {
+        name: "GomokuDawgs",
+        version: "1",
+        chainId: (await ethers.provider.getNetwork()).chainId,
+        verifyingContract: await pool.getAddress(),
+      };
+    }
+
+    it("splits 40/40/10/10 when both players redeem the voucher", async () => {
+      await createAndJoin();
+      await pool.connect(owner).setResultSigner(company.address);
+      const voucher = await company.signTypedData(await drawDomain(), drawTypes, { gameId: GAME_ID });
+
+      const b1 = await token.balanceOf(p1.address);
+      const b2 = await token.balanceOf(p2.address);
+      await pool.connect(p1).claimDrawSigned(GAME_ID, voucher);
+      await pool.connect(p2).claimDrawSigned(GAME_ID, voucher);
+
+      expect((await token.balanceOf(p1.address)) - b1).to.equal(DRAW_SHARE);
+      expect((await token.balanceOf(p2.address)) - b2).to.equal(DRAW_SHARE);
+      expect(await token.balanceOf(company.address)).to.equal(COMPANY_SHARE);
+      expect(await token.balanceOf(burnPool.address)).to.equal(BURN_SHARE);
+      expect(await token.balanceOf(await pool.getAddress())).to.equal(0n);
+      expect((await pool.games(GAME_ID)).drawCompleted).to.equal(true);
+    });
+
+    it("rejects a forged voucher and a double claim", async () => {
+      await createAndJoin();
+      await pool.connect(owner).setResultSigner(company.address);
+      const forged = await outsider.signTypedData(await drawDomain(), drawTypes, { gameId: GAME_ID });
+      await expect(pool.connect(p1).claimDrawSigned(GAME_ID, forged)).to.be.revertedWith("bad voucher");
+
+      const voucher = await company.signTypedData(await drawDomain(), drawTypes, { gameId: GAME_ID });
+      await pool.connect(p1).claimDrawSigned(GAME_ID, voucher);
+      await expect(pool.connect(p1).claimDrawSigned(GAME_ID, voucher)).to.be.revertedWith(
+        "already claimed"
+      );
     });
   });
 
