@@ -99,16 +99,23 @@ export function createRowDawgsServer(
         io.to(channel).emit("game:over", p);
         lobby.markStatus(gameId, "finished");
         const room = rooms.get(gameId);
-        if (room && !p.txHash && p.reason !== "draw") {
-          // Record once, on the first (pre-settlement) game:over emit.
-          const loser = room.seats.find((s) => s !== p.winner);
-          // Winner takes 80% of the 2-stake pot.
+        if (room && !p.txHash) {
           const stake = lobby.get(gameId)?.stake ?? room.stakeWei() ?? "0";
-          const winnings = ((BigInt(stake) * 2n * 8000n) / 10000n).toString();
-          if (loser) leaderboard.record(gameId, p.winner, loser, winnings);
-          // Surface as a claimable win immediately (idempotent with the chain
-          // backfill, which also records it once finishGame mines).
-          leaderboard.recordWonGame(p.winner, gameId, winnings);
+          if (p.reason !== "draw") {
+            // Record once, on the first (pre-settlement) game:over emit.
+            const loser = room.seats.find((s) => s !== p.winner);
+            // Winner takes 80% of the 2-stake pot.
+            const winnings = ((BigInt(stake) * 2n * 8000n) / 10000n).toString();
+            if (loser) leaderboard.record(gameId, p.winner, loser, winnings);
+            // Surface as a claimable win immediately (idempotent with the chain
+            // backfill, which also records it once finishGame mines).
+            leaderboard.recordWonGame(p.winner, gameId, winnings);
+          } else {
+            // Draw: each player can claim 40% of the pot — surface both so the
+            // unclaimed share shows on their profile if they don't claim in-game.
+            const shareEach = ((BigInt(stake) * 2n * 4000n) / 10000n).toString();
+            for (const player of room.seats) leaderboard.recordDraw(player, gameId, shareEach);
+          }
         }
       },
     };
@@ -270,6 +277,13 @@ export function createRowDawgsServer(
           voucher: (await relayer.signResult(g.gameId, key)) ?? null,
         }))
       );
+      // Draws: each carries a re-signed Draw voucher the player redeems for 40%.
+      const drawGames = await Promise.all(
+        leaderboard.drawGames(key).map(async (g) => ({
+          ...g,
+          voucher: (await relayer.signDraw(g.gameId)) ?? null,
+        }))
+      );
       socket.emit("profile:state", {
         address: key,
         username: profiles.getName(key),
@@ -277,6 +291,7 @@ export function createRowDawgsServer(
         losses: stats.losses,
         wonAmount: stats.wonAmount,
         wonGames,
+        drawGames,
       });
     };
 

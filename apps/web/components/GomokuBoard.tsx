@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { dropRow, idx, type GameState, type Move } from "@rowdawgs/engine";
 
 interface GomokuBoardProps {
@@ -58,7 +58,14 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
   };
 
   // Render a placed piece (or a translucent ghost) for the given seat.
-  const piece = (seat: 0 | 1, cx: number, cy: number, opts: { ghost?: boolean; win?: boolean }) => {
+  // `drop` (gravity variants) = the landing row, used to animate the disc
+  // falling from the top of the column into place.
+  const piece = (
+    seat: 0 | 1,
+    cx: number,
+    cy: number,
+    opts: { ghost?: boolean; win?: boolean; drop?: number }
+  ) => {
     const op = opts.ghost ? 0.4 : 1;
     if (isTTT) {
       const r = 0.3;
@@ -77,6 +84,11 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
       );
     }
     if (isC4) {
+      // Drop from the top of the column to the landing row.
+      const dropStyle =
+        opts.drop != null
+          ? ({ animation: "c4-drop 0.45s both", "--c4-drop": `${-(opts.drop + 0.6)}px` } as CSSProperties)
+          : undefined;
       return (
         <circle
           cx={cx}
@@ -86,6 +98,7 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
           stroke={opts.win ? "#e8c33a" : "rgba(0,0,0,0.25)"}
           strokeWidth={opts.win ? "0.1" : "0.03"}
           opacity={op}
+          style={dropStyle}
         />
       );
     }
@@ -214,7 +227,7 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
 
                 {cell !== null && (
                   <>
-                    {piece(cell, cx, cy, { win: isWin })}
+                    {piece(cell, cx, cy, { win: isWin, drop: isC4 && isLast ? y : undefined })}
                     {isLast && !state.gameOver && !isTTT && (
                       <circle
                         cx={cx}

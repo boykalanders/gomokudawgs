@@ -6,6 +6,8 @@ export class LeaderboardStore {
   // winner → (gameId → reward). Keyed by gameId so the same finish recorded
   // from both the live socket path and the chain backfill is counted once.
   private won = new Map<Address, Map<string, string>>();
+  // player → (gameId → 40% draw share). Both players of a draw can claim.
+  private drawn = new Map<Address, Map<string, string>>();
   // gameIds already counted into wins/losses, so the socket path and the chain
   // backfill (which both report a finish) don't double-count.
   private counted = new Set<string>();
@@ -49,6 +51,24 @@ export class LeaderboardStore {
   /** Games a wallet has won (for the unclaimed-rewards check). */
   wonGames(address: Address): WonGame[] {
     const games = this.won.get(address.toLowerCase() as Address);
+    if (!games) return [];
+    return [...games.entries()].map(([gameId, reward]) => ({ gameId, reward }));
+  }
+
+  /** Record a draw a wallet can claim its 40% share from. Idempotent. */
+  recordDraw(player: Address, gameId: string, shareWei: string): void {
+    const key = player.toLowerCase() as Address;
+    let games = this.drawn.get(key);
+    if (!games) {
+      games = new Map();
+      this.drawn.set(key, games);
+    }
+    games.set(gameId, shareWei);
+  }
+
+  /** Draws a wallet can still claim its 40% share from. */
+  drawGames(address: Address): WonGame[] {
+    const games = this.drawn.get(address.toLowerCase() as Address);
     if (!games) return [];
     return [...games.entries()].map(([gameId, reward]) => ({ gameId, reward }));
   }

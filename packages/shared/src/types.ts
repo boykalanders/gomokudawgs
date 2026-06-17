@@ -106,6 +106,8 @@ export interface PlayerProfile {
   wonAmount: string;
   /** Games this wallet has won (newest first). */
   wonGames: WonGame[];
+  /** Draws this wallet can claim a 40% share from (redeem via claimDrawSigned). */
+  drawGames: WonGame[];
 }
 
 /** Per-move clock, enforced off-chain by the server (never on-chain). Run out

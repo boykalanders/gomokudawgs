@@ -66,6 +66,33 @@ body {
   text-shadow: 0 2px 14px rgba(201, 162, 39, 0.35);
 }
 
+/* Connect 4 — a dropped disc falls from the top of the column and settles.
+   translateY is in SVG user units (≈ board cells); --c4-drop is set inline to
+   the negative start offset. The 0% timing fn accelerates (gravity); the tail
+   keyframes give a small bounce. */
+@keyframes c4-drop {
+  0% {
+    transform: translateY(var(--c4-drop, -6px));
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+  }
+  62% {
+    transform: translateY(0);
+  }
+  76% {
+    transform: translateY(-0.32px);
+    animation-timing-function: ease-out;
+  }
+  88% {
+    transform: translateY(0);
+  }
+  95% {
+    transform: translateY(-0.1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 /* Winner-popup confetti */
 .confetti {
   position: absolute;

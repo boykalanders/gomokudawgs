@@ -12,6 +12,7 @@ import {
 import WalletGate from "@/components/WalletGate";
 import { CHAIN_ID, CONTRACTS_CONFIGURED, DDAWGS_TOKEN_ADDRESS, ROWDAWGS_ADDRESS } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
+import { VARIANTS, variantFromId } from "@/lib/gamecode";
 import { log } from "@/lib/log";
 import { useNftAvatar } from "@/lib/useNftAvatar";
 import { useProfile } from "@/lib/useProfile";
@@ -27,6 +28,9 @@ export default function ProfilePage() {
 /** On-chain game tuple: [p1, p2, isCompleted, winner, stake, rewardClaimed, …]. */
 type ChainGame = readonly [string, string, boolean, string, bigint, boolean, ...unknown[]];
 
+/** An unclaimed payout — a win (claimRewardSigned) or a draw share (claimDrawSigned). */
+type ClaimItem = WonGame & { kind: "win" | "draw" };
+
 
 function Profile() {
   const { address } = useAccount();
@@ -40,7 +44,7 @@ function Profile() {
   // gameId currently being claimed, and the set of confirmed-claimed ids.
   const [claiming, setClaiming] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
-  const [unclaimed, setUnclaimed] = useState<WonGame[]>([]);
+  const [unclaimed, setUnclaimed] = useState<ClaimItem[]>([]);
   const [checking, setChecking] = useState(false);
   const [refresh, setRefresh] = useState(0);
 
@@ -58,19 +62,20 @@ function Profile() {
   });
 
   const wonGames = useMemo(() => profile?.wonGames ?? [], [profile?.wonGames]);
+  const drawGames = useMemo(() => profile?.drawGames ?? [], [profile?.drawGames]);
 
-  // Cross-check each won game on-chain. Anything not yet claimed is listed so
-  // the winner always sees it: claimable now if finishGame has settled it, or
-  // "finalizing" (claimable later) if the result isn't recorded on-chain yet.
+  // Cross-check each win/draw on-chain. Anything not yet paid out to this wallet
+  // is listed so it's always claimable: a win once rewardClaimed is still false,
+  // a draw share until playerPaid[gameId][me] flips true.
   useEffect(() => {
-    if (!publicClient || !address || !ROWDAWGS_ADDRESS || wonGames.length === 0) {
+    if (!publicClient || !address || !ROWDAWGS_ADDRESS || (wonGames.length === 0 && drawGames.length === 0)) {
       setUnclaimed([]);
       return;
     }
     let cancelled = false;
     setChecking(true);
     (async () => {
-      const open: WonGame[] = [];
+      const open: ClaimItem[] = [];
       for (const g of wonGames) {
         try {
           const game = (await publicClient.readContract({
@@ -80,10 +85,25 @@ function Profile() {
             args: [g.gameId],
           })) as unknown as ChainGame;
           if (game[5]) continue; // rewardClaimed — already paid out
-          open.push(g); // claimable now if it carries a voucher
+          open.push({ ...g, kind: "win" });
         } catch (e) {
           log.info("profile: reward check skipped for", g.gameId, e instanceof Error ? e.message : e);
-          open.push(g);
+          open.push({ ...g, kind: "win" });
+        }
+      }
+      for (const g of drawGames) {
+        try {
+          const paid = (await publicClient.readContract({
+            address: ROWDAWGS_ADDRESS,
+            abi: ROW_DAWGS_ABI,
+            functionName: "playerPaid",
+            args: [g.gameId, address],
+          })) as boolean;
+          if (paid) continue; // this wallet already pulled its 40% share
+          open.push({ ...g, kind: "draw" });
+        } catch (e) {
+          log.info("profile: draw check skipped for", g.gameId, e instanceof Error ? e.message : e);
+          open.push({ ...g, kind: "draw" });
         }
       }
       if (!cancelled) {
@@ -94,19 +114,19 @@ function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [wonGames, publicClient, address, refresh]);
+  }, [wonGames, drawGames, publicClient, address, refresh]);
 
   const claim = useCallback(
-    async (gameId: string, voucher: string) => {
-      if (!ROWDAWGS_ADDRESS || !voucher) return;
+    async (item: ClaimItem) => {
+      if (!ROWDAWGS_ADDRESS || !item.voucher) return;
       setClaimError(null);
-      setClaiming(gameId);
+      setClaiming(item.gameId);
       try {
         const tx = await writeContractAsync({
           address: ROWDAWGS_ADDRESS,
           abi: ROW_DAWGS_ABI,
-          functionName: "claimRewardSigned",
-          args: [gameId, voucher as `0x${string}`],
+          functionName: item.kind === "draw" ? "claimDrawSigned" : "claimRewardSigned",
+          args: [item.gameId, item.voucher as `0x${string}`],
           chainId: CHAIN_ID,
         });
         if (publicClient) await publicClient.waitForTransactionReceipt({ hash: tx });
@@ -219,18 +239,19 @@ function Profile() {
         {unclaimed.length === 0 ? (
           <p className="text-sm text-amber-100/50">
             {checking
-              ? "Looking up your wins…"
-              : "No rewards waiting to be claimed. Win a wagered game and it shows up here."}
+              ? "Looking up your games…"
+              : "No rewards waiting to be claimed. Win (or draw) a wagered game and it shows up here."}
           </p>
         ) : (
           <ul className="space-y-3">
             {unclaimed.map((g) => (
               <li key={g.gameId} className="flex items-center gap-4 rounded-lg border border-gold-dim/30 bg-emerald-deep px-4 py-3">
-                <div className="text-2xl">🏆</div>
+                <div className="text-2xl">{g.kind === "draw" ? "🤝" : "🏆"}</div>
                 <div className="min-w-0 flex-1">
                   <p className="font-mono font-semibold text-cream">{g.gameId}</p>
                   <p className="text-xs text-cream/60">
-                    Gomoku · won{" "}
+                    {VARIANTS[variantFromId(g.gameId)].label} ·{" "}
+                    {g.kind === "draw" ? "draw — your 40% share " : "won "}
                     <span className="text-gold-bright">{formatStake(g.reward)}</span>
                   </p>
                 </div>
@@ -238,14 +259,14 @@ function Profile() {
                   <button
                     className="btn-gold"
                     disabled={claiming === g.gameId}
-                    onClick={() => claim(g.gameId, g.voucher!)}
+                    onClick={() => claim(g)}
                   >
-                    {claiming === g.gameId ? "Claiming…" : "Claim"}
+                    {claiming === g.gameId ? "Claiming…" : g.kind === "draw" ? "Claim 40%" : "Claim"}
                   </button>
                 ) : (
                   <span
                     className="rounded-lg border border-gold-dim/40 px-3 py-2 text-xs text-cream/60"
-                    title="The reward voucher isn't available yet — reconnect to the game server and refresh."
+                    title="The voucher isn't available yet — reconnect to the game server and refresh."
                   >
                     Pending…
                   </span>
@@ -255,7 +276,7 @@ function Profile() {
           </ul>
         )}
         <p className="mt-3 text-[11px] text-cream/40">
-          Wins show here even before they settle on-chain — once the result is recorded you can
+          Wins and draw shares show here even before they settle on-chain — once recorded you can
           claim them anytime.
         </p>
       </section>

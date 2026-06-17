@@ -149,7 +149,7 @@ export class GameRoom {
 
     if (result.outcome.gameOver) {
       if (result.outcome.winner !== null) void this.settle(result.outcome.winner, "win");
-      else this.settleDraw();
+      else void this.settleDraw();
     }
     return { ok: true };
   }
@@ -210,14 +210,25 @@ export class GameRoom {
     this.settling = false;
   }
 
-  /** Full-board draw (vanishingly rare in freestyle Gomoku): no winner, no
-   *  payout voucher. Stakes remain escrowed for an owner-driven refund. */
-  private settleDraw(): void {
-    if (this.over) return;
+  /** Full-board draw (common in Tic-Tac-Toe). The backend signs a Draw voucher;
+   *  EITHER player redeems it via claimDrawSigned for their 40% share (10%
+   *  company, 10% burn taken on the first redemption). */
+  private async settleDraw(): Promise<void> {
+    if (this.over || this.settling) return;
+    this.settling = true;
     this.stopClock();
-    this.over = { winner: ZERO_ADDRESS, reason: "draw" };
-    this.emitter.broadcastOver({ gameId: this.gameId, winner: ZERO_ADDRESS, reason: "draw" });
+    this.state = { ...this.state, gameOver: true, winner: null };
+
+    let voucher: string | undefined;
+    try {
+      voucher = (await this.relayer.signDraw(this.gameId)) ?? undefined;
+    } catch {
+      /* logged by the relayer */
+    }
+    this.over = { winner: ZERO_ADDRESS, reason: "draw", voucher };
+    this.emitter.broadcastOver({ gameId: this.gameId, winner: ZERO_ADDRESS, reason: "draw", voucher });
     this.emitter.broadcastState(this.snapshot());
+    this.settling = false;
   }
 
   dispose(): void {
