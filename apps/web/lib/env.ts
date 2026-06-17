@@ -35,12 +35,13 @@ interface NetworkContracts {
 const NETWORKS: Record<number, NetworkContracts> = {
   11155111: {
     name: "Sepolia",
-    // Voucher-model escrow (fresh proxy). Server CONTRACT_ADDRESS must match.
-    gomokuDawgs: "0x1a0ff1B3B4D20495B12367f291A8639B9B268764",
-    ddawgsToken: "0xe60F1A83C0A08FF104b3c1F74D932f0C9D629C4E",
-    // Redeployed with read-time/retroactive metadata; gate re-pointed here.
-    gomokuDawgsNFT: "0x6150D0Cd8b2871adB22c81B796E3DdAFF852DA05",
-    chessDawgsNFT: "0x276252194f9313D9B0747210cacD259107f4e1A5",
+    // Voucher-model escrow (fresh proxy, deployed 2026-06-17 by deploy:sepolia).
+    // Server CONTRACT_ADDRESS must match. resultSigner = owner 0x9456…6B2.
+    gomokuDawgs: "0x3d7C8E39d2515ed01299C96d8A449FD0FB649b33",
+    ddawgsToken: "0x5B539DD02B610fb587678Ab0C8489f32a35B615A",
+    gomokuDawgsNFT: "0xc6Ad8ecbA8b87E8F23BD03a24e720998db305900",
+    // Mock stand-in for ChessDawgs NFT (grandfather path) on testnet.
+    chessDawgsNFT: "0xfabE3035bbF8E66F6037E01C3F54ABA0CBcF3934",
   },
   1: {
     name: "Ethereum",

@@ -178,15 +178,18 @@ If neither, the gate offers a one-tap mint of a pass. The gate is a single
 ## Networks
 
 Dual-network by `NEXT_PUBLIC_CHAIN_ID` (web) / Hardhat network (contracts).
-**GomokuDawgs is not yet deployed** — rehearse on Sepolia with a mock token/NFT,
-then deploy fresh to mainnet. Fill the addresses in once deployed:
+**Sepolia is live** (deployed 2026-06-17, mock token/NFT); mainnet is pending a
+fresh deploy.
 
-| | Sepolia | Ethereum mainnet |
+| | Sepolia (live) | Ethereum mainnet |
 |---|---|---|
-| GomokuDawgs proxy | _pending deploy_ | _pending deploy_ |
-| $DDawgs token | _mock (faucet) — pending deploy_ | `0x19f78a898f3e3c2f40c6E0CD2EE5545F549d5E99` |
-| GomokuDawgsNFT (pass) | _pending deploy_ | _pending deploy_ |
-| ChessDawgs NFT (grandfather) | _mock — pending deploy_ | `0xf82E0cF5605101efE12689461c2bC9392BfDedEF` |
+| GomokuDawgs proxy | `0x3d7C8E39d2515ed01299C96d8A449FD0FB649b33` | _pending deploy_ |
+| $DDawgs token | `0x5B539DD02B610fb587678Ab0C8489f32a35B615A` (mock faucet) | `0x19f78a898f3e3c2f40c6E0CD2EE5545F549d5E99` |
+| GomokuDawgsNFT (pass) | `0xc6Ad8ecbA8b87E8F23BD03a24e720998db305900` | _pending deploy_ |
+| ChessDawgs NFT (grandfather) | `0xfabE3035bbF8E66F6037E01C3F54ABA0CBcF3934` (mock) | `0xf82E0cF5605101efE12689461c2bC9392BfDedEF` |
+
+The deployer/owner `0x94568de5c91a5F563F674C4DE6B6400B70a6b6B2` is also the
+`resultSigner` — the game server must sign win vouchers with that same key.
 
 The web address book lives in `apps/web/lib/env.ts`; deploy with
 `pnpm --filter @gomokudawgs/contracts deploy:sepolia` (or `deploy:mainnet`),
