@@ -1,5 +1,5 @@
 import { Contract, EventLog, JsonRpcProvider } from "ethers";
-import { GOMOKU_DAWGS_ABI, type Address } from "@gomokudawgs/shared";
+import { ROW_DAWGS_ABI, type Address } from "@rowdawgs/shared";
 import type { ServerConfig } from "./config.js";
 import type { LeaderboardStore } from "./leaderboard.js";
 import type { LobbyStore } from "./lobby.js";
@@ -11,7 +11,7 @@ const BACKFILL_BLOCKS = 800;
 const MAX_SPAN = 800;
 
 /**
- * Mirrors GomokuDawgs contract events into the lobby for the browse list.
+ * Mirrors RowDawgs contract events into the lobby for the browse list.
  *
  * Uses periodic `getLogs` (queryFilter) over block ranges rather than
  * `contract.on(...)`: public RPCs expire the stateful log filters that
@@ -30,7 +30,7 @@ export function startChainListener(
   }
 
   const provider = new JsonRpcProvider(config.rpcUrl!, undefined, { staticNetwork: true });
-  const contract = new Contract(config.contractAddress!, GOMOKU_DAWGS_ABI, provider);
+  const contract = new Contract(config.contractAddress!, ROW_DAWGS_ABI, provider);
 
   let next = -1; // next block to scan from
   let stopped = false;

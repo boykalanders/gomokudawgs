@@ -5,9 +5,9 @@ import { ethers, network, upgrades } from "hardhat";
 /**
  * Local full-stack deployment (hardhat node):
  *   • MockDDawgsToken      — faucet $DDawgs stand-in
- *   • GomokuDawgsNFT         — mintable membership pass (the play gate)
+ *   • RowDawgsNFT         — mintable membership pass (the play gate)
  *   • MockDDawgsNFT        — stands in for the ChessDawgs NFT (grandfather)
- *   • GomokuDawgs proxy      — owned by account #0 (= relayer)
+ *   • RowDawgs proxy      — owned by account #0 (= relayer)
  * Seeds tokens + a pass to two demo players AND the client's real wallet, and
  * gives the client wallet the mock ChessDawgs NFT so the exception is testable.
  * Writes the addresses to <repo root>/local-deployment.json.
@@ -21,14 +21,14 @@ async function main() {
 
   const token = await (await ethers.getContractFactory("MockDDawgsToken")).deploy();
   await token.waitForDeployment();
-  const nft = await (await ethers.getContractFactory("GomokuDawgsNFT")).deploy("");
+  const nft = await (await ethers.getContractFactory("RowDawgsNFT")).deploy("");
   await nft.waitForDeployment();
   const chessNft = await (await ethers.getContractFactory("MockDDawgsNFT")).deploy();
   await chessNft.waitForDeployment();
 
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
   const pool = await upgrades.deployProxy(
-    GomokuDawgs,
+    RowDawgs,
     [
       await token.getAddress(),
       await nft.getAddress(),
@@ -55,9 +55,9 @@ async function main() {
   const deployment = {
     chainId: 31337,
     rpcUrl: "http://127.0.0.1:8545",
-    gomokuDawgs: await pool.getAddress(),
+    rowDawgs: await pool.getAddress(),
     ddawgsToken: await token.getAddress(),
-    gomokuDawgsNFT: await nft.getAddress(),
+    rowDawgsNFT: await nft.getAddress(),
     chessDawgsNFT: await chessNft.getAddress(),
     poolAddress: burnPool.address,
     companyWallet: companyWallet.address,
@@ -67,8 +67,8 @@ async function main() {
 
   const outFile = path.resolve(__dirname, "..", "..", "..", "local-deployment.json");
   fs.writeFileSync(outFile, JSON.stringify(deployment, null, 2));
-  console.log("GomokuDawgs (proxy):", deployment.gomokuDawgs);
-  console.log("GomokuDawgsNFT:      ", deployment.gomokuDawgsNFT);
+  console.log("RowDawgs (proxy):", deployment.rowDawgs);
+  console.log("RowDawgsNFT:      ", deployment.rowDawgsNFT);
   console.log("MockChessDawgsNFT: ", deployment.chessDawgsNFT);
   console.log("Deployment written to", outFile);
 }

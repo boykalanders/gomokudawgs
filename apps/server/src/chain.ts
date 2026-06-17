@@ -1,5 +1,5 @@
 import { Contract, JsonRpcProvider, ZeroAddress } from "ethers";
-import { GOMOKU_DAWGS_ABI } from "@gomokudawgs/shared";
+import { ROW_DAWGS_ABI } from "@rowdawgs/shared";
 import type { ServerConfig } from "./config.js";
 
 export interface ChainGame {
@@ -24,7 +24,7 @@ export function createChainReader(config: ServerConfig): ChainReader {
     return { async getGame() { return null; } };
   }
   const provider = new JsonRpcProvider(config.rpcUrl!, undefined, { staticNetwork: true });
-  const contract = new Contract(config.contractAddress!, GOMOKU_DAWGS_ABI, provider);
+  const contract = new Contract(config.contractAddress!, ROW_DAWGS_ABI, provider);
 
   return {
     async getGame(gameId: string): Promise<ChainGame | null> {

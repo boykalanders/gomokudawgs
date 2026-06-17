@@ -8,8 +8,8 @@ import {
   type ClientToServerEvents,
   type RoomSnapshot,
   type ServerToClientEvents,
-} from "@gomokudawgs/shared";
-import { createGomokuDawgsServer, type GomokuDawgsServer } from "./server.js";
+} from "@rowdawgs/shared";
+import { createRowDawgsServer, type RowDawgsServer } from "./server.js";
 import type { ServerConfig } from "./config.js";
 
 type TestClient = Socket<ServerToClientEvents, ClientToServerEvents>;
@@ -52,11 +52,11 @@ function waitFor<E extends keyof ServerToClientEvents>(
   });
 }
 
-let server: GomokuDawgsServer | null = null;
+let server: RowDawgsServer | null = null;
 let clients: TestClient[] = [];
 
 async function startServer(config: ServerConfig): Promise<number> {
-  server = createGomokuDawgsServer(config);
+  server = createRowDawgsServer(config);
   await new Promise<void>((resolve) => server!.httpServer.listen(0, resolve));
   const addr = server.httpServer.address();
   if (typeof addr === "object" && addr) return addr.port;
@@ -92,7 +92,7 @@ async function joinBoth(
   return { a, b, snapshot };
 }
 
-describe("GomokuDawgs server (dev mode)", () => {
+describe("RowDawgs server (dev mode)", () => {
   it("forms a room with two authed wallets and enforces seating", async () => {
     const port = await startServer(testConfig());
     const { snapshot } = await joinBoth(port, "42");

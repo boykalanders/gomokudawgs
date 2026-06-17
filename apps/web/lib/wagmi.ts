@@ -35,7 +35,7 @@ const hasWalletConnect = /^[0-9a-f]{32}$/i.test(WALLETCONNECT_PROJECT_ID);
 
 export const wagmiConfig = hasWalletConnect
   ? getDefaultConfig({
-      appName: "GomokuDawgs",
+      appName: "RowDawgs",
       projectId: WALLETCONNECT_PROJECT_ID,
       chains: SUPPORTED,
       transports,
@@ -43,7 +43,7 @@ export const wagmiConfig = hasWalletConnect
     })
   : createConfig({
       chains: SUPPORTED,
-      connectors: [injected(), coinbaseWallet({ appName: "GomokuDawgs" })],
+      connectors: [injected(), coinbaseWallet({ appName: "RowDawgs" })],
       transports,
       ssr: true,
     });

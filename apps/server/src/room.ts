@@ -6,7 +6,7 @@ import {
   type GameState,
   type Move,
   type PlayerIndex,
-} from "@gomokudawgs/engine";
+} from "@rowdawgs/engine";
 import {
   variantFromId,
   type Address,
@@ -15,7 +15,7 @@ import {
   type MoveBroadcast,
   type RoomSnapshot,
   type ServerError,
-} from "@gomokudawgs/shared";
+} from "@rowdawgs/shared";
 import type { Relayer } from "./relayer.js";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;

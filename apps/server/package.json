@@ -1,5 +1,5 @@
 {
-  "name": "@gomokudawgs/server",
+  "name": "@rowdawgs/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@gomokudawgs/engine": "workspace:*",
-    "@gomokudawgs/shared": "workspace:*",
+    "@rowdawgs/engine": "workspace:*",
+    "@rowdawgs/shared": "workspace:*",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.4",
     "socket.io": "^4.8.1"

@@ -1,4 +1,4 @@
-import type { Move } from "@gomokudawgs/engine";
+import type { Move } from "@rowdawgs/engine";
 import type {
   Address,
   ChatMessage,
@@ -21,7 +21,7 @@ export interface AuthPayload {
 export const AUTH_TTL_MS = 5 * 60 * 1000;
 
 export function loginMessage(address: Address, ts: number): string {
-  return `GomokuDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
+  return `RowDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
 }
 
 export interface ServerError {

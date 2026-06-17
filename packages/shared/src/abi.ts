@@ -1,9 +1,9 @@
 /**
- * Hand-curated GomokuDawgs ABI — the subset the web app and server use.
+ * Hand-curated RowDawgs ABI — the subset the web app and server use.
  * Mirrors the deployed ChessDawgs template (string gameIds). Regenerate
  * against packages/contracts artifacts if the contract changes.
  */
-export const GOMOKU_DAWGS_ABI = [
+export const ROW_DAWGS_ABI = [
   // ── views ──
   {
     type: "function",
@@ -58,7 +58,7 @@ export const GOMOKU_DAWGS_ABI = [
     outputs: [{ type: "address" }],
   },
   {
-    // The play gate: holds the GomokuDawgs pass OR the grandfathered ChessDawgs NFT.
+    // The play gate: holds the RowDawgs pass OR the grandfathered ChessDawgs NFT.
     type: "function",
     name: "ownsNFT",
     stateMutability: "view",
@@ -293,8 +293,8 @@ export const FAUCET_TOKEN_ABI = [
   },
 ] as const;
 
-/** GomokuDawgsNFT — the mintable membership pass (the play gate). */
-export const GOMOKU_DAWGS_NFT_ABI = [
+/** RowDawgsNFT — the mintable membership pass (the play gate). */
+export const ROW_DAWGS_NFT_ABI = [
   {
     type: "function",
     name: "mint",

@@ -9,10 +9,10 @@ async function main() {
   const d = JSON.parse(fs.readFileSync(file, "utf8"));
   const [signer] = await ethers.getSigners();
 
-  const pool = await ethers.getContractAt("GomokuDawgs", d.gomokuDawgs);
+  const pool = await ethers.getContractAt("RowDawgs", d.rowDawgs);
   const owner: string = await pool.owner();
-  const admin = await upgrades.erc1967.getAdminAddress(d.gomokuDawgs);
-  const impl = await upgrades.erc1967.getImplementationAddress(d.gomokuDawgs);
+  const admin = await upgrades.erc1967.getAdminAddress(d.rowDawgs);
+  const impl = await upgrades.erc1967.getImplementationAddress(d.rowDawgs);
   const currentNft: string = await pool.DDawgsNFT();
 
   let adminOwner = "(no ProxyAdmin — UUPS?)";
@@ -31,7 +31,7 @@ async function main() {
   const eq = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
   console.log(`network        ${network.name}`);
   console.log(`signer         ${signer.address}`);
-  console.log(`proxy          ${d.gomokuDawgs}`);
+  console.log(`proxy          ${d.rowDawgs}`);
   console.log(`implementation ${impl}`);
   console.log(`proxy admin    ${admin}`);
   console.log(`admin owner    ${adminOwner}`);

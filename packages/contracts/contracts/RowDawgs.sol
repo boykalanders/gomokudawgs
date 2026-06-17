@@ -13,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-/// @title GomokuDawgs — wagered 8-ball pool staking/escrow
+/// @title RowDawgs — wagered 8-ball pool staking/escrow
 /// @notice Direct adaptation of the deployed ChessDawgs contract
 ///         (0x543bd22deda83bc17c5bb6bbaa98beba5bbb8dd0 on Ethereum): same
 ///         external interface — string gameIds, the exit-request/draw flow,
@@ -26,7 +26,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 ///         shot-clock forfeits. There is deliberately NO on-chain timer.
 ///         The draw/exit path is kept for cross-game template parity but is
 ///         dormant in pool (win/loss only in practice).
-contract GomokuDawgs is
+contract RowDawgs is
     Initializable,
     OwnableUpgradeable,
     PausableUpgradeable,
@@ -61,11 +61,11 @@ contract GomokuDawgs is
     uint256 private constant BURN_PERCENT = 10;
 
     IERC20 public rewardToken;
-    /// @notice Primary gate NFT — the GomokuDawgs membership pass (GomokuDawgsNFT).
+    /// @notice Primary gate NFT — the RowDawgs membership pass (RowDawgsNFT).
     IERC721 public DDawgsNFT;
     /// @notice Grandfather exception — holders of the existing ChessDawgs NFT
     ///         (0xf82E0cF5605101efE12689461c2bC9392BfDedEF on mainnet) may play
-    ///         without minting a GomokuDawgs pass. Optional (may be the zero
+    ///         without minting a RowDawgs pass. Optional (may be the zero
     ///         address); set/updated via setChessDawgsNFT.
     IERC721 public chessDawgsNFT;
     /// @notice Burn destination — receives the 10% burn cut, as in ChessDawgs.
@@ -138,7 +138,7 @@ contract GomokuDawgs is
 
         __Ownable_init(msg.sender);
         __Pausable_init();
-        __EIP712_init("GomokuDawgs", "1");
+        __EIP712_init("RowDawgs", "1");
 
         rewardToken = IERC20(_rewardToken);
         DDawgsNFT = IERC721(_dDawgsNFT);
@@ -147,7 +147,7 @@ contract GomokuDawgs is
         companyWallet = _companyWallet;
     }
 
-    /// @notice The play gate: a wallet may play if it holds the GomokuDawgs
+    /// @notice The play gate: a wallet may play if it holds the RowDawgs
     ///         membership NFT OR (grandfather) a ChessDawgs NFT.
     function ownsNFT(address account) public view returns (bool) {
         if (DDawgsNFT.balanceOf(account) > 0) return true;
@@ -468,7 +468,7 @@ contract GomokuDawgs is
     }
 
     /// @notice Re-point the primary membership-pass NFT (the play gate). Lets a
-    ///         redeployed GomokuDawgsNFT (e.g. one with real metadata) be wired in
+    ///         redeployed RowDawgsNFT (e.g. one with real metadata) be wired in
     ///         without redeploying the escrow.
     function setDDawgsNFT(address _dDawgsNFT) external onlyOwner {
         require(_dDawgsNFT != address(0), "zero nft");

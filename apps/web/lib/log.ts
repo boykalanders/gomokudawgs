@@ -1,6 +1,6 @@
 // Lightweight, filterable client logging. Open the browser console and filter
-// by "[GomokuDawgs]" to trace wallet, socket, gate, lobby and game-room flow.
-const TAG = "[GomokuDawgs]";
+// by "[RowDawgs]" to trace wallet, socket, gate, lobby and game-room flow.
+const TAG = "[RowDawgs]";
 
 export const log = {
   info: (...args: unknown[]) => console.log(TAG, ...args),

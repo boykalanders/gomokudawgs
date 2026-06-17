@@ -5,16 +5,16 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-/// @title GomokuDawgsNFT — the membership pass that gates GomokuDawgs play.
+/// @title RowDawgsNFT — the membership pass that gates RowDawgs play.
 /// @notice Free public mint, one per wallet. Holding this (or a ChessDawgs
-///         NFT — the grandfather exception, checked by GomokuDawgs.sol) lets a
+///         NFT — the grandfather exception, checked by RowDawgs.sol) lets a
 ///         wallet create and join wagered games.
 /// @dev    Metadata mirrors the ChessDawgs scheme: tokenURI(id) resolves to
 ///         `<baseURI><id>.json` and is computed AT READ TIME (not frozen at
 ///         mint). That means `setBaseURI` is retroactive — set it once and
 ///         every pass, already-minted included, resolves its metadata. Host
 ///         each `<id>.json` returning `{ "name", "image", ... }`.
-contract GomokuDawgsNFT is ERC721, Ownable {
+contract RowDawgsNFT is ERC721, Ownable {
     using Strings for uint256;
 
     uint256 private _nextId = 1;
@@ -23,7 +23,7 @@ contract GomokuDawgsNFT is ERC721, Ownable {
     event Minted(address indexed to, uint256 indexed tokenId);
     event BaseURIUpdated(string baseURI);
 
-    constructor(string memory baseURI) ERC721("Gomoku Dawgs", "GDAWG") Ownable(msg.sender) {
+    constructor(string memory baseURI) ERC721("Row Dawgs", "GDAWG") Ownable(msg.sender) {
         _baseTokenURI = baseURI;
     }
 
@@ -49,7 +49,7 @@ contract GomokuDawgsNFT is ERC721, Ownable {
 
     /// @notice Set (or clear) the metadata base URI. RETROACTIVE: applies to
     ///         every token at once. Include the trailing slash, e.g.
-    ///         "https://backend.example.io/v1/nft/gomokudawgs/".
+    ///         "https://backend.example.io/v1/nft/rowdawgs/".
     function setBaseURI(string calldata baseURI) external onlyOwner {
         _baseTokenURI = baseURI;
         emit BaseURIUpdated(baseURI);

@@ -1,7 +1,7 @@
 "use client";
 
 import { io, type Socket } from "socket.io-client";
-import type { ClientToServerEvents, ServerToClientEvents } from "@gomokudawgs/shared";
+import type { ClientToServerEvents, ServerToClientEvents } from "@rowdawgs/shared";
 import { SERVER_URL } from "./env";
 import { log } from "./log";
 

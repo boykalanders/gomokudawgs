@@ -39,7 +39,7 @@ const NFT_ABI = [
 ];
 
 const loginMessage = (address, ts) =>
-  `GomokuDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
+  `RowDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
 
 let step = 0;
 const log = (m) => console.log(`  [${++step}] ${m}`);

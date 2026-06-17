@@ -1,7 +1,7 @@
 import { ethers, network } from "hardhat";
 
 /**
- * Set the GomokuDawgsNFT metadata base URI (owner-only).
+ * Set the RowDawgsNFT metadata base URI (owner-only).
  *
  * The contract builds each pass's tokenURI as `baseURI + <tokenId> + ".json"`
  * AT MINT TIME, so this only affects passes minted AFTER you run it. Tokens
@@ -12,22 +12,22 @@ import { ethers, network } from "hardhat";
  * in .env — the deployer is the contract owner):
  *
  *   NFT_ADDRESS=0x42e5...d52C \
- *   BASE_URI="https://gomokudawgs-web.vercel.app/nft/" \
- *   pnpm --filter @gomokudawgs/contracts exec hardhat run scripts/set-nft-base-uri.ts --network sepolia
+ *   BASE_URI="https://rowdawgs-web.vercel.app/nft/" \
+ *   pnpm --filter @rowdawgs/contracts exec hardhat run scripts/set-nft-base-uri.ts --network sepolia
  *
  * BASE_URI MUST end with a slash so the result is `.../1.json`.
  */
 async function main() {
   const nftAddress = process.env.NFT_ADDRESS;
   const baseURI = process.env.BASE_URI;
-  if (!nftAddress) throw new Error("Set NFT_ADDRESS to the GomokuDawgsNFT address");
+  if (!nftAddress) throw new Error("Set NFT_ADDRESS to the RowDawgsNFT address");
   if (!baseURI) throw new Error('Set BASE_URI, e.g. "https://host/nft/" (trailing slash required)');
   if (!baseURI.endsWith("/")) throw new Error("BASE_URI must end with a slash");
 
   const [owner] = await ethers.getSigners();
   console.log(`Network ${network.name} — sender ${owner.address}`);
 
-  const nft = await ethers.getContractAt("GomokuDawgsNFT", nftAddress);
+  const nft = await ethers.getContractAt("RowDawgsNFT", nftAddress);
   const tx = await nft.setBaseURI(baseURI);
   console.log(`setBaseURI("${baseURI}") → ${tx.hash}`);
   await tx.wait();

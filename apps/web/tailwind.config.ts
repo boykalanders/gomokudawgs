@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Deputy Dawgs / Gomoku Dawgs premium theme — classic warm-wood surfaces (dark
+ * Deputy Dawgs / Row Dawgs premium theme — classic warm-wood surfaces (dark
  * stained walnut cabinet around a honey-oak playing board), metallic gold trim,
  * cream type. The "emerald"/"mahogany"/"gunmetal" token names are kept (now
  * mapped to wood shades) so the whole app reskins from one place.

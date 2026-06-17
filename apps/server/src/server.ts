@@ -6,7 +6,7 @@ import {
   type ClientToServerEvents,
   type LobbyGame,
   type ServerToClientEvents,
-} from "@gomokudawgs/shared";
+} from "@rowdawgs/shared";
 import { verifyAuth } from "./auth.js";
 import { createChainReader, ZeroAddress, type ChainReader } from "./chain.js";
 import { startChainListener } from "./chain-events.js";
@@ -23,7 +23,7 @@ interface SocketData {
 
 type IoServer = Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
-export interface GomokuDawgsServer {
+export interface RowDawgsServer {
   httpServer: HttpServer;
   io: IoServer;
   lobby: LobbyStore;
@@ -33,11 +33,11 @@ export interface GomokuDawgsServer {
 
 const roomChannel = (gameId: string) => `game:${gameId}`;
 
-export function createGomokuDawgsServer(
+export function createRowDawgsServer(
   config: ServerConfig,
   relayer: Relayer = createRelayer(config),
   chainReader: ChainReader = createChainReader(config)
-): GomokuDawgsServer {
+): RowDawgsServer {
   const leaderboard = new LeaderboardStore();
   const profiles = new ProfileStore(config.dataDir);
 

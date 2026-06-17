@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { ChatMessage } from "@gomokudawgs/shared";
+import type { ChatMessage } from "@rowdawgs/shared";
 import { shortAddress } from "@/lib/format";
 import { IconClose } from "@/components/icons";
 

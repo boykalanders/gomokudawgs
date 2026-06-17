@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePublicClient } from "wagmi";
-import { ERC721_ABI, GOMOKU_DAWGS_NFT_ABI, type Address } from "@gomokudawgs/shared";
-import { CHESS_NFT_ADDRESS, GOMOKUDAWGS_NFT_ADDRESS } from "./env";
+import { ERC721_ABI, ROW_DAWGS_NFT_ABI, type Address } from "@rowdawgs/shared";
+import { CHESS_NFT_ADDRESS, ROWDAWGS_NFT_ADDRESS } from "./env";
 import { identiconDataUri } from "./identicon";
 import { log } from "./log";
 
@@ -46,10 +46,10 @@ async function imageFromTokenUri(tokenUri: string): Promise<string | null> {
 }
 
 async function poolPassImage(client: Client, owner: Address): Promise<string | null> {
-  if (!GOMOKUDAWGS_NFT_ADDRESS) return null;
+  if (!ROWDAWGS_NFT_ADDRESS) return null;
   const balance = (await client.readContract({
-    address: GOMOKUDAWGS_NFT_ADDRESS,
-    abi: GOMOKU_DAWGS_NFT_ABI,
+    address: ROWDAWGS_NFT_ADDRESS,
+    abi: ROW_DAWGS_NFT_ABI,
     functionName: "balanceOf",
     args: [owner],
   })) as bigint;
@@ -60,8 +60,8 @@ async function poolPassImage(client: Client, owner: Address): Promise<string | n
   const head = await client.getBlockNumber();
   const fromBlock = head > 45000n ? head - 45000n : 0n;
   const logs = await client.getContractEvents({
-    address: GOMOKUDAWGS_NFT_ADDRESS,
-    abi: GOMOKU_DAWGS_NFT_ABI,
+    address: ROWDAWGS_NFT_ADDRESS,
+    abi: ROW_DAWGS_NFT_ABI,
     eventName: "Minted",
     args: { to: owner },
     fromBlock,
@@ -69,8 +69,8 @@ async function poolPassImage(client: Client, owner: Address): Promise<string | n
   const tokenId = logs.at(-1)?.args?.tokenId as bigint | undefined;
   if (tokenId === undefined) return null;
   const uri = (await client.readContract({
-    address: GOMOKUDAWGS_NFT_ADDRESS,
-    abi: GOMOKU_DAWGS_NFT_ABI,
+    address: ROWDAWGS_NFT_ADDRESS,
+    abi: ROW_DAWGS_NFT_ABI,
     functionName: "tokenURI",
     args: [tokenId],
   })) as string;
@@ -103,7 +103,7 @@ async function chessDawgsImage(client: Client, owner: Address): Promise<string |
 }
 
 async function resolveNftImage(client: Client, owner: Address): Promise<string | null> {
-  // Prefer the GomokuDawgs membership pass; fall back to a grandfathered
+  // Prefer the RowDawgs membership pass; fall back to a grandfathered
   // ChessDawgs NFT. Each lookup is best-effort — any failure (no metadata,
   // non-enumerable contract, RPC hiccup) just yields null → identicon.
   for (const resolve of [poolPassImage, chessDawgsImage]) {

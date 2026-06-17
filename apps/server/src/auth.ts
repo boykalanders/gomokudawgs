@@ -1,5 +1,5 @@
 import { verifyMessage } from "ethers";
-import { AUTH_TTL_MS, loginMessage, type AuthPayload, type Address } from "@gomokudawgs/shared";
+import { AUTH_TTL_MS, loginMessage, type AuthPayload, type Address } from "@rowdawgs/shared";
 
 /**
  * Verifies a wallet-signature login. The client signs loginMessage(address, ts)

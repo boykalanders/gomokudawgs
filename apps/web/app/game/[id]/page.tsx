@@ -4,18 +4,18 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { formatUnits, zeroAddress } from "viem";
 import { useAccount, usePublicClient, useReadContract, useSignMessage, useWriteContract } from "wagmi";
-import { type GameState, type Move, type PlayerIndex } from "@gomokudawgs/engine";
+import { type GameState, type Move, type PlayerIndex } from "@rowdawgs/engine";
 import {
   ERC20_ABI,
   loginMessage,
-  GOMOKU_DAWGS_ABI,
+  ROW_DAWGS_ABI,
   type Address,
   type ChatMessage,
   type GameOverReason,
   type MoveBroadcast,
   type RoomSnapshot,
   type ServerError,
-} from "@gomokudawgs/shared";
+} from "@rowdawgs/shared";
 import GameShell, { type ShellPlayer } from "@/components/GameShell";
 import WalletGate from "@/components/WalletGate";
 import WinnerPopup from "@/components/WinnerPopup";
@@ -23,7 +23,7 @@ import {
   CHAIN_ID,
   CONTRACTS_CONFIGURED,
   DDAWGS_TOKEN_ADDRESS,
-  GOMOKUDAWGS_ADDRESS,
+  ROWDAWGS_ADDRESS,
 } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
 import { inviteLink, variantFromId, VARIANTS } from "@/lib/gamecode";
@@ -41,7 +41,7 @@ export default function GamePage() {
 
 type Phase = "loading" | "notfound" | "waiting" | "invite" | "full" | "over" | "play";
 
-/** Decoded on-chain game tuple from GomokuDawgs.games(gameId). */
+/** Decoded on-chain game tuple from RowDawgs.games(gameId). */
 type ChainGame = readonly [string, string, boolean, string, bigint, ...unknown[]];
 
 /** How a game ended, phrased for the end-game modal (win wording depends on the
@@ -95,8 +95,8 @@ function GameRoom() {
   // On-chain game state drives the pre-game phase. Polled so the creator's
   // "waiting" screen flips to play the moment an opponent joins.
   const { data: chainGame, refetch: refetchGame } = useReadContract({
-    address: GOMOKUDAWGS_ADDRESS ?? undefined,
-    abi: GOMOKU_DAWGS_ABI,
+    address: ROWDAWGS_ADDRESS ?? undefined,
+    abi: ROW_DAWGS_ABI,
     functionName: "games",
     args: [gameId],
     query: {
@@ -274,7 +274,7 @@ function GameRoom() {
   );
 
   async function joinThisGame() {
-    if (!GOMOKUDAWGS_ADDRESS || !DDAWGS_TOKEN_ADDRESS || !publicClient || !address || onchainStake === null) return;
+    if (!ROWDAWGS_ADDRESS || !DDAWGS_TOKEN_ADDRESS || !publicClient || !address || onchainStake === null) return;
     setActionError(null);
     setWorking("join");
     try {
@@ -282,20 +282,20 @@ function GameRoom() {
         address: DDAWGS_TOKEN_ADDRESS,
         abi: ERC20_ABI,
         functionName: "allowance",
-        args: [address, GOMOKUDAWGS_ADDRESS],
+        args: [address, ROWDAWGS_ADDRESS],
       })) as bigint;
       if (allowance < onchainStake) {
         const a = await writeContractAsync({
           address: DDAWGS_TOKEN_ADDRESS,
           abi: ERC20_ABI,
           functionName: "approve",
-          args: [GOMOKUDAWGS_ADDRESS, onchainStake],
+          args: [ROWDAWGS_ADDRESS, onchainStake],
         });
         await publicClient.waitForTransactionReceipt({ hash: a });
       }
       const tx = await writeContractAsync({
-        address: GOMOKUDAWGS_ADDRESS,
-        abi: GOMOKU_DAWGS_ABI,
+        address: ROWDAWGS_ADDRESS,
+        abi: ROW_DAWGS_ABI,
         functionName: "joinGame",
         args: [gameId],
       });
@@ -309,13 +309,13 @@ function GameRoom() {
   }
 
   async function cancelGame() {
-    if (!GOMOKUDAWGS_ADDRESS || !publicClient) return;
+    if (!ROWDAWGS_ADDRESS || !publicClient) return;
     setActionError(null);
     setWorking("cancel");
     try {
       const tx = await writeContractAsync({
-        address: GOMOKUDAWGS_ADDRESS,
-        abi: GOMOKU_DAWGS_ABI,
+        address: ROWDAWGS_ADDRESS,
+        abi: ROW_DAWGS_ABI,
         functionName: "cancelGame",
         args: [gameId],
       });
@@ -329,7 +329,7 @@ function GameRoom() {
   }
 
   async function claim() {
-    if (!GOMOKUDAWGS_ADDRESS) return;
+    if (!ROWDAWGS_ADDRESS) return;
     // The winner redeems the backend's voucher: claimRewardSigned settles the
     // game AND pays out in this single winner-paid tx — no settlement wait.
     const voucher = snapshot?.over?.voucher;
@@ -342,8 +342,8 @@ function GameRoom() {
     log.info("claim: redeeming voucher for", gameId);
     try {
       const tx = await writeContractAsync({
-        address: GOMOKUDAWGS_ADDRESS,
-        abi: GOMOKU_DAWGS_ABI,
+        address: ROWDAWGS_ADDRESS,
+        abi: ROW_DAWGS_ABI,
         functionName: "claimRewardSigned",
         args: [gameId, voucher as `0x${string}`],
         chainId: CHAIN_ID,

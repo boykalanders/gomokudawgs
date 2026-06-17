@@ -4,7 +4,7 @@ import { SiteFooter, SiteHeader } from "@/components/SiteChrome";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "GomokuDawgs — wagered five-in-a-row for Deputy Dawgs",
+  title: "RowDawgs — wagered five-in-a-row for Deputy Dawgs",
   description:
     "Stake $DDawgs, line up five. Premium Gomoku in the Deputy Dawgs ecosystem.",
 };

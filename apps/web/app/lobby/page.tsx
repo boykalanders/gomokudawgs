@@ -12,15 +12,15 @@ import {
 import {
   ERC20_ABI,
   FAUCET_TOKEN_ABI,
-  GOMOKU_DAWGS_ABI,
+  ROW_DAWGS_ABI,
   type LobbyGame,
-} from "@gomokudawgs/shared";
+} from "@rowdawgs/shared";
 import WalletGate from "@/components/WalletGate";
 import {
   CONTRACTS_CONFIGURED,
   DDAWGS_TOKEN_ADDRESS,
   IS_TESTNET,
-  GOMOKUDAWGS_ADDRESS,
+  ROWDAWGS_ADDRESS,
 } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
 import {
@@ -87,7 +87,7 @@ function Lobby() {
   const openGames = useMemo(() => games.filter((g) => g.status === "open"), [games]);
 
   async function createOnChain() {
-    if (!GOMOKUDAWGS_ADDRESS || !DDAWGS_TOKEN_ADDRESS || !publicClient || !address) return;
+    if (!ROWDAWGS_ADDRESS || !DDAWGS_TOKEN_ADDRESS || !publicClient || !address) return;
     setError(null);
     setBusy("create");
     try {
@@ -99,8 +99,8 @@ function Lobby() {
       let gameId = newGameCode(variant);
       for (let i = 0; i < 5; i++) {
         const g = (await publicClient.readContract({
-          address: GOMOKUDAWGS_ADDRESS,
-          abi: GOMOKU_DAWGS_ABI,
+          address: ROWDAWGS_ADDRESS,
+          abi: ROW_DAWGS_ABI,
           functionName: "games",
           args: [gameId],
         })) as unknown as readonly [string, ...unknown[]];
@@ -112,21 +112,21 @@ function Lobby() {
         address: DDAWGS_TOKEN_ADDRESS,
         abi: ERC20_ABI,
         functionName: "allowance",
-        args: [address, GOMOKUDAWGS_ADDRESS],
+        args: [address, ROWDAWGS_ADDRESS],
       })) as bigint;
       if (allowance < stake) {
         const a = await writeContractAsync({
           address: DDAWGS_TOKEN_ADDRESS,
           abi: ERC20_ABI,
           functionName: "approve",
-          args: [GOMOKUDAWGS_ADDRESS, stake],
+          args: [ROWDAWGS_ADDRESS, stake],
         });
         await publicClient.waitForTransactionReceipt({ hash: a });
       }
       log.info("lobby: createGame", gameId, "stake", stakeInput);
       const tx = await writeContractAsync({
-        address: GOMOKUDAWGS_ADDRESS,
-        abi: GOMOKU_DAWGS_ABI,
+        address: ROWDAWGS_ADDRESS,
+        abi: ROW_DAWGS_ABI,
         functionName: "createGame",
         args: [stake, gameId],
       });

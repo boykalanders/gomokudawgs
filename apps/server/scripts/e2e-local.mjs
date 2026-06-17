@@ -30,9 +30,9 @@ const ERC20_ABI = [
   "function balanceOf(address account) view returns (uint256)",
 ];
 
-// Must match @gomokudawgs/shared loginMessage().
+// Must match @rowdawgs/shared loginMessage().
 const loginMessage = (address, ts) =>
-  `GomokuDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
+  `RowDawgs login\naddress: ${address.toLowerCase()}\nts: ${ts}`;
 
 const provider = new JsonRpcProvider(deployment.rpcUrl);
 const playerOne = new Wallet(PLAYER_ONE_KEY, provider);
@@ -73,17 +73,17 @@ async function makeAuth(wallet) {
 }
 
 async function main() {
-  console.log(`\nGomokuDawgs local E2E — game "${GAME_ID}", stake 100 $DDawgs\n`);
+  console.log(`\nRowDawgs local E2E — game "${GAME_ID}", stake 100 $DDawgs\n`);
 
   const health = await fetch(`${SERVER}/health`).then((r) => r.json());
   if (!health.chainEnabled) fail("server is not in chain mode — check apps/server/.env");
   log("server healthy, chain mode on");
 
   // ── on-chain: stake into the game ──
-  const pool1 = new Contract(deployment.gomokuDawgs, POOL_ABI, playerOne);
-  const pool2 = new Contract(deployment.gomokuDawgs, POOL_ABI, playerTwo);
-  await (await token.connect(playerOne).approve(deployment.gomokuDawgs, STAKE)).wait();
-  await (await token.connect(playerTwo).approve(deployment.gomokuDawgs, STAKE)).wait();
+  const pool1 = new Contract(deployment.rowDawgs, POOL_ABI, playerOne);
+  const pool2 = new Contract(deployment.rowDawgs, POOL_ABI, playerTwo);
+  await (await token.connect(playerOne).approve(deployment.rowDawgs, STAKE)).wait();
+  await (await token.connect(playerTwo).approve(deployment.rowDawgs, STAKE)).wait();
   log("both players approved the stake");
   await (await pool1.createGame(STAKE, GAME_ID)).wait();
   log(`playerOne created game on-chain (${playerOne.address})`);

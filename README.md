@@ -1,4 +1,4 @@
-# GomokuDawgs ⚫⚪
+# RowDawgs ⚫⚪
 
 Wagered **Gomoku (five-in-a-row)** for the **Deputy Dawgs** ecosystem. Stake
 **$DDawgs**, line up five stones, take the pot: **80% to the winner, 10% to the
@@ -46,7 +46,7 @@ apps/web/           Next.js frontend — wallet gate, lobby, game view, chat,
 apps/server/        Authoritative game server — Socket.IO rooms, move clock,
                     chain event listener, relayer (signs win vouchers)
 packages/engine/    Deterministic engine + variants (Gomoku 15×15 / TTT 3×3)
-packages/contracts/ GomokuDawgs.sol (UUPS proxy) + Hardhat tests + deploy
+packages/contracts/ RowDawgs.sol (UUPS proxy) + Hardhat tests + deploy
 packages/shared/    Types, socket event contracts, curated ABI
 ```
 
@@ -62,19 +62,19 @@ pnpm -r test           # engine unit tests, server integration tests, contract t
 
 ```bash
 # Terminal 1 — local chain
-pnpm --filter @gomokudawgs/contracts node:local
+pnpm --filter @rowdawgs/contracts node:local
 
-# Terminal 2 — deploy GomokuDawgs + mock $DDawgs/NFT, fund the test wallets
-pnpm --filter @gomokudawgs/contracts deploy:local
+# Terminal 2 — deploy RowDawgs + mock $DDawgs/NFT, fund the test wallets
+pnpm --filter @rowdawgs/contracts deploy:local
 #   → writes local-deployment.json; copy the addresses into
 #     apps/server/.env and apps/web/.env.local (templates show the shape;
 #     OWNER_PRIVATE_KEY = hardhat account #0 key printed by the node)
 
 # Terminal 3 — game server (chain mode)
-pnpm --filter @gomokudawgs/server dev
+pnpm --filter @rowdawgs/server dev
 
 # Terminal 4 — web app (build AFTER the env file exists: NEXT_PUBLIC_* is baked in)
-pnpm --filter @gomokudawgs/web build && pnpm --filter @gomokudawgs/web start
+pnpm --filter @rowdawgs/web build && pnpm --filter @rowdawgs/web start
 ```
 
 Open http://localhost:3000. To play from the browser, add the local network
@@ -108,7 +108,7 @@ to hold gas.
 
 - `apps/server/.env` — `RPC_URL`, `CONTRACT_ADDRESS`, `OPERATOR_PRIVATE_KEY`
   (or `OWNER_PRIVATE_KEY`)
-- `apps/web/.env.local` — `NEXT_PUBLIC_GOMOKUDAWGS_ADDRESS`,
+- `apps/web/.env.local` — `NEXT_PUBLIC_ROWDAWGS_ADDRESS`,
   `NEXT_PUBLIC_DDAWGS_TOKEN_ADDRESS`, `NEXT_PUBLIC_CHAIN_ID`,
   `NEXT_PUBLIC_SERVER_URL`, `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`
 
@@ -157,23 +157,23 @@ Railway's Nixpacks tries to build the whole monorepo and fails). Steps:
 3. Set service **Variables**:
    ```
    RPC_URL=https://ethereum-sepolia-rpc.publicnode.com
-   CONTRACT_ADDRESS=0x…             # the deployed GomokuDawgs proxy
+   CONTRACT_ADDRESS=0x…             # the deployed RowDawgs proxy
    OPERATOR_PRIVATE_KEY=0x…         # the result-signer / settlement key
-   CORS_ORIGINS=https://gomokudawgs-web.vercel.app
+   CORS_ORIGINS=https://rowdawgs-web.vercel.app
    ```
    (Railway injects `PORT` automatically; the server reads it.)
 4. Generate a public domain (Settings → Networking) and set the web's
    `NEXT_PUBLIC_SERVER_URL` to that `https://…` URL, then redeploy the web.
 
-The Dockerfile installs only `@gomokudawgs/server...` (engine + shared + server)
+The Dockerfile installs only `@rowdawgs/server...` (engine + shared + server)
 — no Next/Hardhat — so it's small and has no native-build steps.
 
 ## Play gate (NFT auth)
 
 A wallet may create/join games only if it holds an NFT — enforced **on-chain**
-(`GomokuDawgs.ownsNFT`) and surfaced in the web `WalletGate`:
+(`RowDawgs.ownsNFT`) and surfaced in the web `WalletGate`:
 
-1. Holds the **GomokuDawgs membership pass** (`GomokuDawgsNFT`, free public mint,
+1. Holds the **RowDawgs membership pass** (`RowDawgsNFT`, free public mint,
    one per wallet) — or
 2. Holds a **ChessDawgs NFT** (`0xf82E…` on mainnet) — the grandfather
    exception: existing ChessDawgs holders are in automatically, no mint needed.
@@ -189,16 +189,16 @@ fresh deploy.
 
 | | Sepolia (live) | Ethereum mainnet |
 |---|---|---|
-| GomokuDawgs proxy | `0x3d7C8E39d2515ed01299C96d8A449FD0FB649b33` | _pending deploy_ |
+| RowDawgs proxy | `0x3d7C8E39d2515ed01299C96d8A449FD0FB649b33` | _pending deploy_ |
 | $DDawgs token | `0x5B539DD02B610fb587678Ab0C8489f32a35B615A` (mock faucet) | `0x19f78a898f3e3c2f40c6E0CD2EE5545F549d5E99` |
-| GomokuDawgsNFT (pass) | `0xc6Ad8ecbA8b87E8F23BD03a24e720998db305900` | _pending deploy_ |
+| RowDawgsNFT (pass) | `0xc6Ad8ecbA8b87E8F23BD03a24e720998db305900` | _pending deploy_ |
 | ChessDawgs NFT (grandfather) | `0xfabE3035bbF8E66F6037E01C3F54ABA0CBcF3934` (mock) | `0xf82E0cF5605101efE12689461c2bC9392BfDedEF` |
 
 The deployer/owner `0x94568de5c91a5F563F674C4DE6B6400B70a6b6B2` is also the
 `resultSigner` — the game server must sign win vouchers with that same key.
 
 The web address book lives in `apps/web/lib/env.ts`; deploy with
-`pnpm --filter @gomokudawgs/contracts deploy:sepolia` (or `deploy:mainnet`),
+`pnpm --filter @rowdawgs/contracts deploy:sepolia` (or `deploy:mainnet`),
 then update the registry and the server's `CONTRACT_ADDRESS`.
 
 ## Lobby & matchmaking
@@ -242,14 +242,14 @@ shared codes, which is the correct shape for an escrow contract.
 | $DDawgs ERC-20 (`rewardToken`) | `0x19f78a898f3e3c2f40c6E0CD2EE5545F549d5E99` |
 | Gate NFT — ChessDawgsNFT / CDNFT (`DDawgsNFT`) | `0xf82E0cF5605101efE12689461c2bC9392BfDedEF` |
 
-GomokuDawgs.sol mirrors the deployed ChessDawgs interface: **string gameIds**
+RowDawgs.sol mirrors the deployed ChessDawgs interface: **string gameIds**
 (client-chosen), `poolAddress` = burn destination, `companyWallet`, the
 owner-relayed exit/draw flow, plus the voucher additions (`resultSigner` /
 `setResultSigner`, `operator` / `setOperator`, `claimRewardSigned`).
 
 ## Known gaps / open items
 
-- **GomokuDawgs proxy + pool/company wallet addresses** — deploy pending
+- **RowDawgs proxy + pool/company wallet addresses** — deploy pending
   (rehearse on Sepolia with mock token/NFT, then mainnet).
 - **Themed sprite assets** (Dawgs avatars, logos, board art) pending from the
   client; the app currently draws the premium emerald/gold theme in vector.

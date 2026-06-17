@@ -4,21 +4,21 @@ import { ethers, network, upgrades } from "hardhat";
 
 /**
  * Redeploy the membership-pass NFT with real metadata and wire it into the
- * existing GomokuDawgs escrow — the clean, retroactive path.
+ * existing RowDawgs escrow — the clean, retroactive path.
  *
  * Steps:
- *   1. Deploy a fresh GomokuDawgsNFT with the given BASE_URI (read-time metadata).
- *   2. Upgrade the GomokuDawgs proxy so it gains `setDDawgsNFT`.
+ *   1. Deploy a fresh RowDawgsNFT with the given BASE_URI (read-time metadata).
+ *   2. Upgrade the RowDawgs proxy so it gains `setDDawgsNFT`.
  *   3. Re-point the play gate at the new NFT.
  *   4. (Optional) ownerMint a pass to each address in HOLDERS.
  *
  * Run from packages/contracts (DEPLOYER_PRIVATE_KEY must be the escrow owner):
  *
- *   BASE_URI="https://backend.chessdawgs.io/v1/nft/gomokudawgs/" \
+ *   BASE_URI="https://backend.chessdawgs.io/v1/nft/rowdawgs/" \
  *   HOLDERS="0xabc...,0xdef..." \
- *   pnpm --filter @gomokudawgs/contracts exec hardhat run scripts/redeploy-nft.ts --network sepolia
+ *   pnpm --filter @rowdawgs/contracts exec hardhat run scripts/redeploy-nft.ts --network sepolia
  *
- * Afterwards set NEXT_PUBLIC_GOMOKUDAWGS_NFT_ADDRESS (web) to the printed address
+ * Afterwards set NEXT_PUBLIC_ROWDAWGS_NFT_ADDRESS (web) to the printed address
  * and redeploy the frontend.
  */
 async function main() {
@@ -29,21 +29,21 @@ async function main() {
   const file = path.join(__dirname, "..", "deployments", `${network.name}.json`);
   if (!fs.existsSync(file)) throw new Error(`No deployment record at ${file}`);
   const deployment = JSON.parse(fs.readFileSync(file, "utf8"));
-  const proxyAddress: string = deployment.gomokuDawgs;
+  const proxyAddress: string = deployment.rowDawgs;
 
   const [deployer] = await ethers.getSigners();
   console.log(`Network ${network.name} — owner ${deployer.address}`);
   console.log(`Escrow proxy ${proxyAddress}`);
 
   // 1. New NFT with metadata.
-  const nft = await (await ethers.getContractFactory("GomokuDawgsNFT")).deploy(baseURI);
+  const nft = await (await ethers.getContractFactory("RowDawgsNFT")).deploy(baseURI);
   await nft.waitForDeployment();
   const nftAddress = await nft.getAddress();
-  console.log(`New GomokuDawgsNFT → ${nftAddress}  (baseURI ${baseURI})`);
+  console.log(`New RowDawgsNFT → ${nftAddress}  (baseURI ${baseURI})`);
 
   // 2. Upgrade the escrow so it has setDDawgsNFT, then 3. re-point the gate.
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
-  const pool = await upgrades.upgradeProxy(proxyAddress, GomokuDawgs);
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
+  const pool = await upgrades.upgradeProxy(proxyAddress, RowDawgs);
   await pool.waitForDeployment();
   console.log("Escrow proxy upgraded (gains setDDawgsNFT)");
   await (await pool.setDDawgsNFT(nftAddress)).wait();
@@ -59,12 +59,12 @@ async function main() {
     console.log(`ownerMint → ${to}`);
   }
 
-  deployment.gomokuDawgsNFT = nftAddress;
+  deployment.rowDawgsNFT = nftAddress;
   deployment.implementation = await upgrades.erc1967.getImplementationAddress(proxyAddress);
   fs.writeFileSync(file, JSON.stringify(deployment, null, 2));
 
   console.log("\nDone. Update the frontend env:");
-  console.log(`  NEXT_PUBLIC_GOMOKUDAWGS_NFT_ADDRESS=${nftAddress}`);
+  console.log(`  NEXT_PUBLIC_ROWDAWGS_NFT_ADDRESS=${nftAddress}`);
 }
 
 main().catch((e) => {

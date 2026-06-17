@@ -9,19 +9,19 @@ import {
   useSwitchChain,
   useWriteContract,
 } from "wagmi";
-import { GOMOKU_DAWGS_ABI, GOMOKU_DAWGS_NFT_ABI } from "@gomokudawgs/shared";
+import { ROW_DAWGS_ABI, ROW_DAWGS_NFT_ABI } from "@rowdawgs/shared";
 import {
   CHAIN_ID,
   CONTRACTS_CONFIGURED,
   NETWORK_NAME,
-  GOMOKUDAWGS_ADDRESS,
-  GOMOKUDAWGS_NFT_ADDRESS,
+  ROWDAWGS_ADDRESS,
+  ROWDAWGS_NFT_ADDRESS,
 } from "@/lib/env";
 import { log } from "@/lib/log";
 
 /**
- * Play gate. A wallet may enter if the GomokuDawgs contract's `ownsNFT` is true —
- * i.e. it holds the GomokuDawgs membership pass OR (grandfather) a ChessDawgs
+ * Play gate. A wallet may enter if the RowDawgs contract's `ownsNFT` is true —
+ * i.e. it holds the RowDawgs membership pass OR (grandfather) a ChessDawgs
  * NFT. Otherwise we offer a one-tap mint of a pass. When contracts aren't
  * configured for the active network (e.g. mainnet pre-deploy) it only requires
  * a connected wallet (look-and-feel build).
@@ -39,8 +39,8 @@ export default function WalletGate({ children }: { children: ReactNode }) {
     isLoading,
     refetch,
   } = useReadContract({
-    address: GOMOKUDAWGS_ADDRESS ?? undefined,
-    abi: GOMOKU_DAWGS_ABI,
+    address: ROWDAWGS_ADDRESS ?? undefined,
+    abi: ROW_DAWGS_ABI,
     functionName: "ownsNFT",
     args: address ? [address] : undefined,
     query: { enabled: Boolean(CONTRACTS_CONFIGURED && address) },
@@ -57,14 +57,14 @@ export default function WalletGate({ children }: { children: ReactNode }) {
   }, [owns, isLoading, address]);
 
   async function mint() {
-    if (!GOMOKUDAWGS_NFT_ADDRESS || !publicClient) return;
+    if (!ROWDAWGS_NFT_ADDRESS || !publicClient) return;
     setError(null);
     setMinting(true);
-    log.info("gate: minting pass at", GOMOKUDAWGS_NFT_ADDRESS);
+    log.info("gate: minting pass at", ROWDAWGS_NFT_ADDRESS);
     try {
       const hash = await writeContractAsync({
-        address: GOMOKUDAWGS_NFT_ADDRESS,
-        abi: GOMOKU_DAWGS_NFT_ABI,
+        address: ROWDAWGS_NFT_ADDRESS,
+        abi: ROW_DAWGS_NFT_ABI,
         functionName: "mint",
       });
       log.info("gate: mint tx", hash, "— waiting…");
@@ -84,7 +84,7 @@ export default function WalletGate({ children }: { children: ReactNode }) {
       <div className="panel mx-auto flex max-w-md flex-col items-center gap-4 p-10 text-center">
         <h2 className="heading-display text-2xl">Wallet required</h2>
         <p className="text-sm text-amber-100/60">
-          Connect your wallet to play GomokuDawgs on{" "}
+          Connect your wallet to play RowDawgs on{" "}
           <span className="text-gold">{NETWORK_NAME}</span>.
         </p>
         <ConnectButton />
@@ -100,7 +100,7 @@ export default function WalletGate({ children }: { children: ReactNode }) {
         <div className="text-4xl">🔌</div>
         <h2 className="heading-display text-2xl">Wrong network</h2>
         <p className="text-sm text-amber-100/60">
-          GomokuDawgs runs on <span className="text-gold">{NETWORK_NAME}</span>. Your
+          RowDawgs runs on <span className="text-gold">{NETWORK_NAME}</span>. Your
           wallet is on a different network — switch to continue.
         </p>
         <button
@@ -123,9 +123,9 @@ export default function WalletGate({ children }: { children: ReactNode }) {
       return (
         <div className="panel mx-auto max-w-md space-y-4 p-10 text-center">
           <div className="text-4xl">🎟️</div>
-          <h2 className="heading-display text-2xl">Mint your Gomoku Dawgs pass</h2>
+          <h2 className="heading-display text-2xl">Mint your Row Dawgs pass</h2>
           <p className="text-sm text-amber-100/60">
-            A Gomoku Dawgs NFT is your seat at the table. Mint one (free) to start
+            A Row Dawgs NFT is your seat at the table. Mint one (free) to start
             staking $DDawgs.
           </p>
           <button className="btn-gold w-full" disabled={minting} onClick={mint}>

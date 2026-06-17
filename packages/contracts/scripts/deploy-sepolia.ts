@@ -6,9 +6,9 @@ import { ethers, network, upgrades } from "hardhat";
  * Testnet deployment (Sepolia). The real $DDawgs token and ChessDawgs NFT only
  * exist on mainnet, so on testnet we deploy stand-ins:
  *   • MockDDawgsToken — faucet test-token (mint to anyone)
- *   • GomokuDawgsNFT    — the real mintable membership pass (the play gate)
+ *   • RowDawgsNFT    — the real mintable membership pass (the play gate)
  *   • MockDDawgsNFT   — stands in for the ChessDawgs NFT (grandfather exception)
- *   • GomokuDawgs proxy — owned by the deployer (= backend relayer)
+ *   • RowDawgs proxy — owned by the deployer (= backend relayer)
  *
  * Seeds the deployer + the client wallet with faucet tokens, and gives the
  * client wallet the mock ChessDawgs NFT so the grandfather path is testable.
@@ -25,8 +25,8 @@ async function main() {
   const token = await (await ethers.getContractFactory("MockDDawgsToken")).deploy();
   await token.waitForDeployment();
   // NFT_BASE_URI (trailing slash) seeds metadata at deploy so passes have
-  // images from token #1 — e.g. "https://backend.example.io/v1/nft/gomokudawgs/".
-  const nft = await (await ethers.getContractFactory("GomokuDawgsNFT")).deploy(
+  // images from token #1 — e.g. "https://backend.example.io/v1/nft/rowdawgs/".
+  const nft = await (await ethers.getContractFactory("RowDawgsNFT")).deploy(
     process.env.NFT_BASE_URI ?? ""
   );
   await nft.waitForDeployment();
@@ -36,9 +36,9 @@ async function main() {
   const company = process.env.COMPANY_WALLET || deployer.address;
   const burn = process.env.POOL_ADDRESS || BURN_ADDRESS;
 
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
   const pool = await upgrades.deployProxy(
-    GomokuDawgs,
+    RowDawgs,
     [
       await token.getAddress(),
       await nft.getAddress(),
@@ -67,10 +67,10 @@ async function main() {
     network: network.name,
     chainId: Number((await ethers.provider.getNetwork()).chainId),
     deployedAt: new Date().toISOString(),
-    gomokuDawgs: proxyAddr,
+    rowDawgs: proxyAddr,
     implementation: await upgrades.erc1967.getImplementationAddress(proxyAddr),
     ddawgsToken: await token.getAddress(),
-    gomokuDawgsNFT: await nft.getAddress(),
+    rowDawgsNFT: await nft.getAddress(),
     chessDawgsNFT: await chessNft.getAddress(),
     poolAddress: burn,
     companyWallet: company,

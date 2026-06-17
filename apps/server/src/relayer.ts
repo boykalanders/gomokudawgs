@@ -1,5 +1,5 @@
 import { Contract, JsonRpcProvider, Wallet } from "ethers";
-import { GOMOKU_DAWGS_ABI, type Address } from "@gomokudawgs/shared";
+import { ROW_DAWGS_ABI, type Address } from "@rowdawgs/shared";
 import type { ServerConfig } from "./config.js";
 
 export interface Relayer {
@@ -54,9 +54,9 @@ export function createRelayer(config: ServerConfig): Relayer {
       config.operatorPrivateKey ? "operator key" : "owner key"
     })`
   );
-  const contract = new Contract(config.contractAddress!, GOMOKU_DAWGS_ABI, wallet);
+  const contract = new Contract(config.contractAddress!, ROW_DAWGS_ABI, wallet);
 
-  // EIP-712 domain — MUST match the contract's __EIP712_init("GomokuDawgs","1")
+  // EIP-712 domain — MUST match the contract's __EIP712_init("RowDawgs","1")
   // and the deployed proxy address. chainId is resolved once from the provider.
   let chainIdPromise: Promise<bigint> | null = null;
   const chainId = () => (chainIdPromise ??= provider.getNetwork().then((n) => n.chainId));
@@ -71,7 +71,7 @@ export function createRelayer(config: ServerConfig): Relayer {
     Draw: [{ name: "gameId", type: "string" }],
   };
   const domain = async () => ({
-    name: "GomokuDawgs",
+    name: "RowDawgs",
     version: "1",
     chainId: await chainId(),
     verifyingContract: config.contractAddress!,

@@ -2,7 +2,7 @@ import { ethers, upgrades } from "hardhat";
 
 /**
  * Mainnet deployment. The $DDawgs token and the ChessDawgs NFT already exist;
- * a fresh GomokuDawgsNFT (the mintable membership pass) is deployed here too.
+ * a fresh RowDawgsNFT (the mintable membership pass) is deployed here too.
  *
  * Required env (see .env.example):
  *   DDAWGS_TOKEN_ADDRESS  — $DDawgs ERC-20 (mainnet: 0x19f78a898f3e3c2f40c6E0CD2EE5545F549d5E99)
@@ -25,21 +25,21 @@ async function main() {
     );
   }
 
-  const nft = await (await ethers.getContractFactory("GomokuDawgsNFT")).deploy(
+  const nft = await (await ethers.getContractFactory("RowDawgsNFT")).deploy(
     process.env.NFT_BASE_URI ?? ""
   );
   await nft.waitForDeployment();
-  console.log("GomokuDawgsNFT deployed to:", await nft.getAddress());
+  console.log("RowDawgsNFT deployed to:", await nft.getAddress());
 
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
   const proxy = await upgrades.deployProxy(
-    GomokuDawgs,
+    RowDawgs,
     [token, await nft.getAddress(), chessNft, poolAddress, company],
     { kind: "transparent" }
   );
   await proxy.waitForDeployment();
 
-  console.log("GomokuDawgs proxy deployed to:", await proxy.getAddress());
+  console.log("RowDawgs proxy deployed to:", await proxy.getAddress());
   console.log(
     "Implementation:",
     await upgrades.erc1967.getImplementationAddress(await proxy.getAddress())

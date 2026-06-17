@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSignMessage } from "wagmi";
-import { loginMessage, type Address, type PlayerProfile } from "@gomokudawgs/shared";
+import { loginMessage, type Address, type PlayerProfile } from "@rowdawgs/shared";
 import { getSocket } from "./socket";
 import { log } from "./log";
 

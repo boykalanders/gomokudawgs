@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { dropRow, idx, type GameState, type Move } from "@gomokudawgs/engine";
+import { dropRow, idx, type GameState, type Move } from "@rowdawgs/engine";
 
 interface GomokuBoardProps {
   state: GameState;

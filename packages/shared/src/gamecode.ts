@@ -7,7 +7,7 @@ import {
   VARIANTS,
   variantByPrefix,
   type GameVariant,
-} from "@gomokudawgs/engine";
+} from "@rowdawgs/engine";
 
 // Ambiguous characters (I, L, O, 0, 1) are excluded so codes read aloud / type
 // cleanly.

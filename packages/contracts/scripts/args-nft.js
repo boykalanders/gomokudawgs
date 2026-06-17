@@ -1,2 +1,2 @@
-// Constructor args for GomokuDawgsNFT (baseURI = "" at deploy time).
+// Constructor args for RowDawgsNFT (baseURI = "" at deploy time).
 module.exports = [""];

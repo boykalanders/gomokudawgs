@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { LeaderboardEntry, PlatformStats } from "@gomokudawgs/shared";
+import type { LeaderboardEntry, PlatformStats } from "@rowdawgs/shared";
 import { SERVER_URL } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
 

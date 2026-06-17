@@ -1,4 +1,4 @@
-import type { GameState, Move, PlayerIndex } from "@gomokudawgs/engine";
+import type { GameState, Move, PlayerIndex } from "@rowdawgs/engine";
 
 export type Address = `0x${string}`;
 

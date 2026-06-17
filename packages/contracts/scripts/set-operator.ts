@@ -12,7 +12,7 @@ import { ethers, network, upgrades } from "hardhat";
  * Run from packages/contracts (DEPLOYER_PRIVATE_KEY must be the escrow owner):
  *
  *   OPERATOR_ADDRESS=0x<operator wallet> \
- *   pnpm --filter @gomokudawgs/contracts exec hardhat run scripts/set-operator.ts --network sepolia
+ *   pnpm --filter @rowdawgs/contracts exec hardhat run scripts/set-operator.ts --network sepolia
  *
  * Then set OPERATOR_PRIVATE_KEY (the key for OPERATOR_ADDRESS) on the server.
  */
@@ -24,15 +24,15 @@ async function main() {
 
   const file = path.join(__dirname, "..", "deployments", `${network.name}.json`);
   const deployment = JSON.parse(fs.readFileSync(file, "utf8"));
-  const proxyAddress: string = deployment.gomokuDawgs;
+  const proxyAddress: string = deployment.rowDawgs;
 
   const [deployer] = await ethers.getSigners();
   console.log(`Network ${network.name} — owner ${deployer.address}`);
   console.log(`Escrow proxy ${proxyAddress}`);
 
   // 1. Upgrade so the escrow has setOperator + the onlyRelayer guard.
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
-  const pool = await upgrades.upgradeProxy(proxyAddress, GomokuDawgs);
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
+  const pool = await upgrades.upgradeProxy(proxyAddress, RowDawgs);
   await pool.waitForDeployment();
   console.log("Escrow upgraded (operator role available)");
 

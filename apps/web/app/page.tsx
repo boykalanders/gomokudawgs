@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { VARIANT_LIST } from "@gomokudawgs/engine";
+import { VARIANT_LIST } from "@rowdawgs/engine";
 
 const FEATURES = [
   {
@@ -33,7 +33,7 @@ export default function HomePage() {
         />
         <div className="relative flex flex-col items-center gap-7">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/logo.svg" alt="Gomoku Dawgs" className="h-20 w-auto drop-shadow-[0_6px_18px_rgba(0,0,0,0.6)]" draggable={false} />
+          <img src="/assets/logo.svg" alt="Row Dawgs" className="h-20 w-auto drop-shadow-[0_6px_18px_rgba(0,0,0,0.6)]" draggable={false} />
           <h1 className="heading-display text-5xl font-bold leading-tight sm:text-6xl">
             Five in a row. <span className="text-cream">Stake &rsquo;em.</span>
           </h1>

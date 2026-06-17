@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { MAX_USERNAME_LENGTH, type Address } from "@gomokudawgs/shared";
+import { MAX_USERNAME_LENGTH, type Address } from "@rowdawgs/shared";
 
 /**
  * Per-wallet display names. Usernames are the one piece of profile data that

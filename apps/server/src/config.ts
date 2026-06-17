@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { MOVE_CLOCK_MS } from "@gomokudawgs/shared";
+import { MOVE_CLOCK_MS } from "@rowdawgs/shared";
 
 export interface ServerConfig {
   port: number;
@@ -8,7 +8,7 @@ export interface ServerConfig {
   contractAddress: string | null;
   ownerPrivateKey: string | null;
   /** Dedicated low-privilege settlement key (preferred over the owner key).
-   *  Can only call finishGame/exit/draw on-chain — see GomokuDawgs.onlyRelayer. */
+   *  Can only call finishGame/exit/draw on-chain — see RowDawgs.onlyRelayer. */
   operatorPrivateKey: string | null;
   moveClockMs: number;
   /** True when RPC + contract are configured; otherwise chain-less dev mode. */

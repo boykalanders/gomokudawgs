@@ -1,8 +1,8 @@
 {
-  "name": "gomokudawgs",
+  "name": "rowdawgs",
   "private": true,
   "version": "0.1.0",
-  "description": "GomokuDawgs — wagered 2D 8-ball pool for the Deputy Dawgs ecosystem",
+  "description": "RowDawgs — wagered 2D 8-ball pool for the Deputy Dawgs ecosystem",
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run test",

@@ -2,8 +2,8 @@ import { expect } from "chai";
 import { ethers, upgrades } from "hardhat";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import {
-  GomokuDawgs,
-  GomokuDawgsNFT,
+  RowDawgs,
+  RowDawgsNFT,
   MockDDawgsToken,
   MockDDawgsNFT,
 } from "../typechain-types";
@@ -18,10 +18,10 @@ const DRAW_SHARE = (POT * 40n) / 100n; // each player on a draw
 const GAME_ID = "pool-game-001";
 const ABANDONMENT_TIMEOUT = 3600;
 
-describe("GomokuDawgs", () => {
-  let pool: GomokuDawgs;
+describe("RowDawgs", () => {
+  let pool: RowDawgs;
   let token: MockDDawgsToken;
-  let nft: GomokuDawgsNFT; // GomokuDawgs membership pass (gate)
+  let nft: RowDawgsNFT; // RowDawgs membership pass (gate)
   let chessNft: MockDDawgsNFT; // grandfathered ChessDawgs NFT
   let owner: HardhatEthersSigner; // backend relayer / deployer
   let p1: HardhatEthersSigner;
@@ -35,12 +35,12 @@ describe("GomokuDawgs", () => {
     [owner, p1, p2, outsider, chessHolder, company, burnPool] = await ethers.getSigners();
 
     token = await (await ethers.getContractFactory("MockDDawgsToken")).deploy();
-    nft = await (await ethers.getContractFactory("GomokuDawgsNFT")).deploy("");
+    nft = await (await ethers.getContractFactory("RowDawgsNFT")).deploy("");
     chessNft = await (await ethers.getContractFactory("MockDDawgsNFT")).deploy();
 
-    const GomokuDawgsFactory = await ethers.getContractFactory("GomokuDawgs");
+    const RowDawgsFactory = await ethers.getContractFactory("RowDawgs");
     pool = (await upgrades.deployProxy(
-      GomokuDawgsFactory,
+      RowDawgsFactory,
       [
         await token.getAddress(),
         await nft.getAddress(),
@@ -49,12 +49,12 @@ describe("GomokuDawgs", () => {
         company.address,
       ],
       { kind: "transparent" }
-    )) as unknown as GomokuDawgs;
+    )) as unknown as RowDawgs;
 
     for (const player of [p1, p2]) {
       await token.mint(player.address, STAKE * 10n);
       await token.connect(player).approve(await pool.getAddress(), ethers.MaxUint256);
-      await nft.connect(player).mint(); // mint a GomokuDawgs pass
+      await nft.connect(player).mint(); // mint a RowDawgs pass
     }
     // outsider has tokens but no NFT of either kind
     await token.mint(outsider.address, STAKE * 10n);
@@ -144,7 +144,7 @@ describe("GomokuDawgs", () => {
       // The backend signer is set on-chain; the backend never sends a tx.
       await pool.connect(owner).setResultSigner(company.address);
       const domain = {
-        name: "GomokuDawgs",
+        name: "RowDawgs",
         version: "1",
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await pool.getAddress(),
@@ -198,7 +198,7 @@ describe("GomokuDawgs", () => {
     const drawTypes = { Draw: [{ name: "gameId", type: "string" }] };
     async function drawDomain() {
       return {
-        name: "GomokuDawgs",
+        name: "RowDawgs",
         version: "1",
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await pool.getAddress(),
@@ -255,8 +255,8 @@ describe("GomokuDawgs", () => {
       expect(await pool.ownsNFT(outsider.address)).to.equal(false); // neither
     });
 
-    it("a ChessDawgs-NFT holder may play without a GomokuDawgs pass", async () => {
-      // chessHolder has no GomokuDawgs pass, only the ChessDawgs NFT.
+    it("a ChessDawgs-NFT holder may play without a RowDawgs pass", async () => {
+      // chessHolder has no RowDawgs pass, only the ChessDawgs NFT.
       expect(await nft.balanceOf(chessHolder.address)).to.equal(0n);
       await expect(pool.connect(chessHolder).createGame(STAKE, GAME_ID)).to.emit(
         pool,
@@ -265,7 +265,7 @@ describe("GomokuDawgs", () => {
       await expect(pool.connect(p1).joinGame(GAME_ID)).to.emit(pool, "GameJoined");
     });
 
-    it("minting a GomokuDawgs pass unlocks play; the pass mints one per wallet", async () => {
+    it("minting a RowDawgs pass unlocks play; the pass mints one per wallet", async () => {
       await expect(pool.connect(outsider).createGame(STAKE, GAME_ID)).to.be.revertedWith(
         "must own a Dawgs NFT"
       );

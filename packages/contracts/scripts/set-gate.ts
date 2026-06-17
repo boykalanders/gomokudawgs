@@ -9,12 +9,12 @@ import { ethers, network, upgrades } from "hardhat";
  */
 async function main() {
   const nftAddress = process.env.NFT_ADDRESS;
-  if (!nftAddress) throw new Error("Set NFT_ADDRESS to the new GomokuDawgsNFT");
+  if (!nftAddress) throw new Error("Set NFT_ADDRESS to the new RowDawgsNFT");
 
   const file = path.join(__dirname, "..", "deployments", `${network.name}.json`);
   const d = JSON.parse(fs.readFileSync(file, "utf8"));
   const [signer] = await ethers.getSigners();
-  const pool = await ethers.getContractAt("GomokuDawgs", d.gomokuDawgs);
+  const pool = await ethers.getContractAt("RowDawgs", d.rowDawgs);
 
   console.log(`Current gate: ${await pool.DDawgsNFT()}`);
   const nonce = await ethers.provider.getTransactionCount(signer.address, "pending");
@@ -26,11 +26,11 @@ async function main() {
   console.log(`New gate:     ${gate}`);
   if (gate.toLowerCase() !== nftAddress.toLowerCase()) throw new Error("gate not updated");
 
-  d.gomokuDawgsNFT = nftAddress;
-  d.implementation = await upgrades.erc1967.getImplementationAddress(d.gomokuDawgs);
+  d.rowDawgsNFT = nftAddress;
+  d.implementation = await upgrades.erc1967.getImplementationAddress(d.rowDawgs);
   fs.writeFileSync(file, JSON.stringify(d, null, 2));
   console.log("\n✅ Gate re-pointed. Update the frontend env:");
-  console.log(`  NEXT_PUBLIC_GOMOKUDAWGS_NFT_ADDRESS=${nftAddress}`);
+  console.log(`  NEXT_PUBLIC_ROWDAWGS_NFT_ADDRESS=${nftAddress}`);
 }
 
 main().catch((e) => {

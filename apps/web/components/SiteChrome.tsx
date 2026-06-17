@@ -31,7 +31,7 @@ export function SiteHeader() {
       <div className="flex items-center gap-8">
         <Link href="/" className="flex items-center gap-2 transition hover:drop-shadow-[0_0_14px_rgba(201,162,39,0.4)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/assets/logo.svg" alt="Gomoku Dawgs" className="h-11 w-auto" draggable={false} />
+          <img src="/assets/logo.svg" alt="Row Dawgs" className="h-11 w-auto" draggable={false} />
         </Link>
         <nav className="hidden items-center gap-1 sm:flex">
           {NAV.map((item) => {

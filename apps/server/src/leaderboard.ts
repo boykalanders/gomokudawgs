@@ -1,4 +1,4 @@
-import type { Address, LeaderboardEntry, PlatformStats, WonGame } from "@gomokudawgs/shared";
+import type { Address, LeaderboardEntry, PlatformStats, WonGame } from "@rowdawgs/shared";
 
 /** In-memory win/loss ledger; swap for a DB alongside the lobby store. */
 export class LeaderboardStore {

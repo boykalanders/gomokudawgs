@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@gomokudawgs/engine", "@gomokudawgs/shared"],
+  transpilePackages: ["@rowdawgs/engine", "@rowdawgs/shared"],
   reactStrictMode: true,
 };
 

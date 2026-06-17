@@ -3,7 +3,7 @@ import * as path from "path";
 import { ethers, network, upgrades } from "hardhat";
 
 /**
- * Deploy a FRESH GomokuDawgs escrow proxy (voucher model) reusing the existing
+ * Deploy a FRESH RowDawgs escrow proxy (voucher model) reusing the existing
  * token + membership NFT, and wire the backend voucher signer. The backend
  * never sends settlement txns — it signs Result(gameId, winner) vouchers and
  * the winner redeems them via claimRewardSigned; the contract just validates
@@ -12,12 +12,12 @@ import { ethers, network, upgrades } from "hardhat";
  * Run from packages/contracts (DEPLOYER_PRIVATE_KEY funded):
  *
  *   RESULT_SIGNER=0x<backend signer address> \
- *   pnpm --filter @gomokudawgs/contracts exec hardhat run scripts/deploy-fresh.ts --network sepolia
+ *   pnpm --filter @rowdawgs/contracts exec hardhat run scripts/deploy-fresh.ts --network sepolia
  *
  * RESULT_SIGNER must be the ADDRESS of the key the server signs with
  * (OPERATOR_PRIVATE_KEY, else OWNER_PRIVATE_KEY). Defaults to the deployer.
  * Afterwards point the apps at the new proxy:
- *   web:    NEXT_PUBLIC_GOMOKUDAWGS_ADDRESS=<new proxy>
+ *   web:    NEXT_PUBLIC_ROWDAWGS_ADDRESS=<new proxy>
  *   server: CONTRACT_ADDRESS=<new proxy>
  */
 async function main() {
@@ -28,17 +28,17 @@ async function main() {
   if (!ethers.isAddress(signer)) throw new Error("RESULT_SIGNER is not an address");
 
   console.log(`Network ${network.name} — deployer ${deployer.address}`);
-  console.log(`Reusing token ${d.ddawgsToken}, NFT ${d.gomokuDawgsNFT}, chessNFT ${d.chessDawgsNFT}`);
+  console.log(`Reusing token ${d.ddawgsToken}, NFT ${d.rowDawgsNFT}, chessNFT ${d.chessDawgsNFT}`);
 
-  const GomokuDawgs = await ethers.getContractFactory("GomokuDawgs");
+  const RowDawgs = await ethers.getContractFactory("RowDawgs");
   const pool = await upgrades.deployProxy(
-    GomokuDawgs,
-    [d.ddawgsToken, d.gomokuDawgsNFT, d.chessDawgsNFT, d.poolAddress, d.companyWallet],
+    RowDawgs,
+    [d.ddawgsToken, d.rowDawgsNFT, d.chessDawgsNFT, d.poolAddress, d.companyWallet],
     { kind: "transparent" }
   );
   await pool.waitForDeployment();
   const addr = await pool.getAddress();
-  console.log(`New GomokuDawgs proxy → ${addr}`);
+  console.log(`New RowDawgs proxy → ${addr}`);
 
   await (await pool.setResultSigner(signer)).wait();
   console.log(`resultSigner = ${await pool.resultSigner()}`);
@@ -47,13 +47,13 @@ async function main() {
     console.log(`operator     = ${await pool.operator()}`);
   }
 
-  d.gomokuDawgs = addr;
+  d.rowDawgs = addr;
   d.implementation = await upgrades.erc1967.getImplementationAddress(addr);
   d.resultSigner = signer;
   fs.writeFileSync(file, JSON.stringify(d, null, 2));
 
   console.log("\n✅ Deployed. Point the apps at the new proxy:");
-  console.log(`  web:    NEXT_PUBLIC_GOMOKUDAWGS_ADDRESS=${addr}`);
+  console.log(`  web:    NEXT_PUBLIC_ROWDAWGS_ADDRESS=${addr}`);
   console.log(`  server: CONTRACT_ADDRESS=${addr}`);
 }
 

@@ -1,4 +1,4 @@
-import type { Address, LobbyGame, LobbyGameStatus } from "@gomokudawgs/shared";
+import type { Address, LobbyGame, LobbyGameStatus } from "@rowdawgs/shared";
 
 /**
  * In-memory mirror of on-chain games, kept in sync by the event listener.

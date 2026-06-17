@@ -59,16 +59,16 @@ const ERC20_ABI = [
 
 async function main() {
   const net = await provider.getNetwork();
-  console.log(`\nVerifying GomokuDawgs on chainId ${net.chainId} (${dep.network})`);
-  console.log(`Proxy ${dep.gomokuDawgs}\n`);
+  console.log(`\nVerifying RowDawgs on chainId ${net.chainId} (${dep.network})`);
+  console.log(`Proxy ${dep.rowDawgs}\n`);
   check("connected to Sepolia", Number(net.chainId) === 11155111, `chainId ${net.chainId}`);
 
   // ── bytecode present ──
   for (const [name, addr] of [
-    ["proxy", dep.gomokuDawgs],
+    ["proxy", dep.rowDawgs],
     ["implementation", dep.implementation],
     ["token", dep.ddawgsToken],
-    ["GomokuDawgsNFT", dep.gomokuDawgsNFT],
+    ["RowDawgsNFT", dep.rowDawgsNFT],
     ["chessDawgsNFT", dep.chessDawgsNFT],
   ]) {
     const code = await provider.getCode(addr);
@@ -76,15 +76,15 @@ async function main() {
   }
 
   // ── EIP-1967 proxy wiring ──
-  const implSlot = "0x" + (await provider.getStorage(dep.gomokuDawgs, IMPL_SLOT)).slice(26);
+  const implSlot = "0x" + (await provider.getStorage(dep.rowDawgs, IMPL_SLOT)).slice(26);
   check("proxy → implementation slot matches", eq(implSlot, dep.implementation), implSlot);
-  const adminSlot = "0x" + (await provider.getStorage(dep.gomokuDawgs, ADMIN_SLOT)).slice(26);
+  const adminSlot = "0x" + (await provider.getStorage(dep.rowDawgs, ADMIN_SLOT)).slice(26);
   check("proxy has a ProxyAdmin", adminSlot !== "0x0000000000000000000000000000000000000000", adminSlot);
 
   // ── config wiring (via proxy) ──
-  const pool = new Contract(dep.gomokuDawgs, POOL_ABI, provider);
+  const pool = new Contract(dep.rowDawgs, POOL_ABI, provider);
   check("rewardToken == $DDawgs", eq(await pool.rewardToken(), dep.ddawgsToken));
-  check("DDawgsNFT == GomokuDawgsNFT", eq(await pool.DDawgsNFT(), dep.gomokuDawgsNFT));
+  check("DDawgsNFT == RowDawgsNFT", eq(await pool.DDawgsNFT(), dep.rowDawgsNFT));
   check("chessDawgsNFT wired", eq(await pool.chessDawgsNFT(), dep.chessDawgsNFT));
   check("poolAddress == burn", eq(await pool.poolAddress(), dep.poolAddress));
   check("companyWallet wired", eq(await pool.companyWallet(), dep.companyWallet));
@@ -98,7 +98,7 @@ async function main() {
   try {
     await impl.initialize.staticCall(
       dep.ddawgsToken,
-      dep.gomokuDawgsNFT,
+      dep.rowDawgsNFT,
       dep.chessDawgsNFT,
       dep.poolAddress,
       dep.companyWallet
@@ -111,8 +111,8 @@ async function main() {
   // ── token + NFT metadata ──
   const token = new Contract(dep.ddawgsToken, ERC20_ABI, provider);
   check("token metadata", true, `${await token.name()} / ${await token.symbol()} (${await token.decimals()}d)`);
-  const nft = new Contract(dep.gomokuDawgsNFT, NFT_ABI, deployer);
-  check("NFT is Gomoku Dawgs / PDAWG", (await nft.name()) === "Gomoku Dawgs" && (await nft.symbol()) === "PDAWG");
+  const nft = new Contract(dep.rowDawgsNFT, NFT_ABI, deployer);
+  check("NFT is Row Dawgs / PDAWG", (await nft.name()) === "Row Dawgs" && (await nft.symbol()) === "PDAWG");
 
   // ── the gate ──
   check("ownsNFT(client) — grandfathered via ChessDawgs", (await pool.ownsNFT(CLIENT)) === true);
@@ -138,8 +138,8 @@ async function main() {
   console.log(`\n  deployer balance: ${formatEther(await provider.getBalance(deployer.address))} ETH`);
   console.log(`\n${fail === 0 ? "✓ ALL CHECKS PASSED" : `✗ ${fail} CHECK(S) FAILED`} (${pass} passed)\n`);
   console.log("Explorer:");
-  console.log(`  proxy   https://sepolia.etherscan.io/address/${dep.gomokuDawgs}`);
-  console.log(`  NFT     https://sepolia.etherscan.io/address/${dep.gomokuDawgsNFT}`);
+  console.log(`  proxy   https://sepolia.etherscan.io/address/${dep.rowDawgs}`);
+  console.log(`  NFT     https://sepolia.etherscan.io/address/${dep.rowDawgsNFT}`);
   console.log(`  token   https://sepolia.etherscan.io/address/${dep.ddawgsToken}`);
   process.exit(fail === 0 ? 0 : 1);
 }

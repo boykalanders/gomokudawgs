@@ -6,11 +6,11 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from "
 import {
   ERC20_ABI,
   MAX_USERNAME_LENGTH,
-  GOMOKU_DAWGS_ABI,
+  ROW_DAWGS_ABI,
   type WonGame,
-} from "@gomokudawgs/shared";
+} from "@rowdawgs/shared";
 import WalletGate from "@/components/WalletGate";
-import { CHAIN_ID, CONTRACTS_CONFIGURED, DDAWGS_TOKEN_ADDRESS, GOMOKUDAWGS_ADDRESS } from "@/lib/env";
+import { CHAIN_ID, CONTRACTS_CONFIGURED, DDAWGS_TOKEN_ADDRESS, ROWDAWGS_ADDRESS } from "@/lib/env";
 import { formatStake, shortAddress } from "@/lib/format";
 import { log } from "@/lib/log";
 import { useNftAvatar } from "@/lib/useNftAvatar";
@@ -63,7 +63,7 @@ function Profile() {
   // the winner always sees it: claimable now if finishGame has settled it, or
   // "finalizing" (claimable later) if the result isn't recorded on-chain yet.
   useEffect(() => {
-    if (!publicClient || !address || !GOMOKUDAWGS_ADDRESS || wonGames.length === 0) {
+    if (!publicClient || !address || !ROWDAWGS_ADDRESS || wonGames.length === 0) {
       setUnclaimed([]);
       return;
     }
@@ -74,8 +74,8 @@ function Profile() {
       for (const g of wonGames) {
         try {
           const game = (await publicClient.readContract({
-            address: GOMOKUDAWGS_ADDRESS,
-            abi: GOMOKU_DAWGS_ABI,
+            address: ROWDAWGS_ADDRESS,
+            abi: ROW_DAWGS_ABI,
             functionName: "games",
             args: [g.gameId],
           })) as unknown as ChainGame;
@@ -98,13 +98,13 @@ function Profile() {
 
   const claim = useCallback(
     async (gameId: string, voucher: string) => {
-      if (!GOMOKUDAWGS_ADDRESS || !voucher) return;
+      if (!ROWDAWGS_ADDRESS || !voucher) return;
       setClaimError(null);
       setClaiming(gameId);
       try {
         const tx = await writeContractAsync({
-          address: GOMOKUDAWGS_ADDRESS,
-          abi: GOMOKU_DAWGS_ABI,
+          address: ROWDAWGS_ADDRESS,
+          abi: ROW_DAWGS_ABI,
           functionName: "claimRewardSigned",
           args: [gameId, voucher as `0x${string}`],
           chainId: CHAIN_ID,

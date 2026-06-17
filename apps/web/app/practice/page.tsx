@@ -11,7 +11,7 @@ import {
   type GameState,
   type GameVariant,
   type Move,
-} from "@gomokudawgs/engine";
+} from "@rowdawgs/engine";
 import GameShell from "@/components/GameShell";
 import WinnerPopup from "@/components/WinnerPopup";
 

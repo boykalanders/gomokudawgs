@@ -4,8 +4,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useAccountModal, useConnectModal } from "@rainbow-me/rainbowkit";
 import { useAccount } from "wagmi";
-import type { GameState, Move } from "@gomokudawgs/engine";
-import type { ChatMessage } from "@gomokudawgs/shared";
+import type { GameState, Move } from "@rowdawgs/engine";
+import type { ChatMessage } from "@rowdawgs/shared";
 import Chat from "@/components/Chat";
 import GomokuBoard from "@/components/GomokuBoard";
 import PlayerCard from "@/components/PlayerCard";
@@ -106,7 +106,7 @@ export default function GameShell({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/assets/logo.svg"
-          alt="Gomoku Dawgs"
+          alt="Row Dawgs"
           className="pointer-events-none absolute left-1/2 top-2 z-20 h-24 w-auto -translate-x-1/2 drop-shadow-[0_6px_14px_rgba(0,0,0,0.8)] xl:h-28"
           draggable={false}
         />
