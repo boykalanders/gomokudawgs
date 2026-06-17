@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="36" viewBox="0 0 680 36" fill="none">
+  <defs>
+    <!-- Wood: dark butt (left) → pale maple shaft (right) -->
+    <linearGradient id="cw" x1="0" y1="0" x2="680" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4a3019"/>
+      <stop offset=".23" stop-color="#6e4a28"/>
+      <stop offset=".27" stop-color="#c9a36c"/>
+      <stop offset=".6" stop-color="#d8bc88"/>
+      <stop offset="1" stop-color="#ecdfba"/>
+    </linearGradient>
+    <!-- Cylindrical shading (highlight band down the middle) -->
+    <linearGradient id="cy" x1="0" y1="0" x2="0" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000" stop-opacity=".5"/>
+      <stop offset=".4" stop-color="#fff" stop-opacity=".34"/>
+      <stop offset=".62" stop-color="#fff" stop-opacity=".06"/>
+      <stop offset="1" stop-color="#000" stop-opacity=".55"/>
+    </linearGradient>
+    <!-- Brass/gold rings -->
+    <linearGradient id="cg" x1="0" y1="0" x2="0" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7a5e18"/>
+      <stop offset=".45" stop-color="#f1d985"/>
+      <stop offset="1" stop-color="#6e520f"/>
+    </linearGradient>
+    <!-- Linen wrap on the butt -->
+    <linearGradient id="cwrap" x1="0" y1="0" x2="0" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#15100a"/>
+      <stop offset=".45" stop-color="#3a2a1a"/>
+      <stop offset="1" stop-color="#0b0704"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Cue body: butt (left) → tip (right), tapered, centred on y=18 -->
+  <path d="M18 8.5 L632 14.8 L632 21.2 L18 27.5 Q8 27.5 8 18 Q8 8.5 18 8.5 Z" fill="url(#cw)"/>
+  <path d="M18 8.5 L632 14.8 L632 21.2 L18 27.5 Q8 27.5 8 18 Q8 8.5 18 8.5 Z" fill="url(#cy)"/>
+
+  <!-- Butt wrap (grip) -->
+  <path d="M18 9.1 L150 10.4 L150 25.6 L18 26.9 Q9 26.9 9 18 Q9 9.1 18 9.1 Z" fill="url(#cwrap)"/>
+  <path d="M18 9.1 L150 10.4 L150 25.6 L18 26.9 Q9 26.9 9 18 Q9 9.1 18 9.1 Z" fill="url(#cy)"/>
+
+  <!-- Gold butt cap + joint collar -->
+  <rect x="11" y="8.5" width="6.5" height="19" rx="2.5" fill="url(#cg)"/>
+  <rect x="149" y="10" width="9" height="16" rx="1" fill="url(#cg)"/>
+
+  <!-- Ivory ferrule + leather tip -->
+  <path d="M632 14.85 L650 15.3 L650 20.7 L632 21.15 Z" fill="#f4eddb"/>
+  <path d="M650 15.3 L666 15.9 Q672 16.3 672 18 Q672 19.7 666 20.1 L650 20.7 Z" fill="#2f6f9e"/>
+
+  <!-- Brand stamp along the shaft -->
+  <text x="400" y="20.9" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif"
+        font-size="8.5" font-weight="bold" letter-spacing="2.6" fill="#3a2410" opacity="0.9">POOLDAWGS</text>
+</svg>

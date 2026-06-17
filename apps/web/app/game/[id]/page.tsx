@@ -1,0 +1,638 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { formatUnits, zeroAddress } from "viem";
+import { useAccount, usePublicClient, useReadContract, useSignMessage, useWriteContract } from "wagmi";
+import { type GameState, type Move, type PlayerIndex } from "@gomokudawgs/engine";
+import {
+  ERC20_ABI,
+  loginMessage,
+  GOMOKU_DAWGS_ABI,
+  type Address,
+  type ChatMessage,
+  type GameOverReason,
+  type MoveBroadcast,
+  type RoomSnapshot,
+  type ServerError,
+} from "@gomokudawgs/shared";
+import GameShell, { type ShellPlayer } from "@/components/GameShell";
+import WalletGate from "@/components/WalletGate";
+import WinnerPopup from "@/components/WinnerPopup";
+import {
+  CHAIN_ID,
+  CONTRACTS_CONFIGURED,
+  DDAWGS_TOKEN_ADDRESS,
+  GOMOKUDAWGS_ADDRESS,
+} from "@/lib/env";
+import { formatStake, shortAddress } from "@/lib/format";
+import { inviteLink } from "@/lib/gamecode";
+import { useNftAvatar } from "@/lib/useNftAvatar";
+import { log } from "@/lib/log";
+import { getSocket } from "@/lib/socket";
+
+export default function GamePage() {
+  return (
+    <WalletGate>
+      <GameRoom />
+    </WalletGate>
+  );
+}
+
+type Phase = "loading" | "notfound" | "waiting" | "invite" | "full" | "over" | "play";
+
+/** Decoded on-chain game tuple from GomokuDawgs.games(gameId). */
+type ChainGame = readonly [string, string, boolean, string, bigint, ...unknown[]];
+
+/** How a game ended, phrased for the end-game modal. */
+const REASON_WORD: Record<GameOverReason, string> = {
+  win: "five in a row",
+  resign: "resignation",
+  timeout: "the move clock",
+  draw: "a draw",
+};
+
+function GameRoom() {
+  const params = useParams<{ id: string }>();
+  const gameId = params.id;
+  const router = useRouter();
+  const { address } = useAccount();
+  const publicClient = usePublicClient();
+  const { signMessageAsync } = useSignMessage();
+  const { writeContractAsync } = useWriteContract();
+
+  const [snapshot, setSnapshot] = useState<RoomSnapshot | null>(null);
+  const [state, setState] = useState<GameState | null>(null);
+  const seededChat = useRef(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [joined, setJoined] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+  const [working, setWorking] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [socketConnected, setSocketConnected] = useState(false);
+  const [waitedTooLong, setWaitedTooLong] = useState(false);
+
+  const { data: myBalance } = useReadContract({
+    address: DDAWGS_TOKEN_ADDRESS ?? undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(CONTRACTS_CONFIGURED && address) },
+  });
+
+  // On-chain game state drives the pre-game phase. Polled so the creator's
+  // "waiting" screen flips to play the moment an opponent joins.
+  const { data: chainGame, refetch: refetchGame } = useReadContract({
+    address: GOMOKUDAWGS_ADDRESS ?? undefined,
+    abi: GOMOKU_DAWGS_ABI,
+    functionName: "games",
+    args: [gameId],
+    query: {
+      enabled: Boolean(CONTRACTS_CONFIGURED && gameId),
+      refetchInterval: 4000,
+    },
+  });
+
+  // ── derive phase ──────────────────────────────────────────────────────
+  const me = address?.toLowerCase();
+  let phase: Phase = "play";
+  let onchainStake: bigint | null = null;
+  let onchainWinner: string | null = null;
+  let amP1 = false;
+  let amP2 = false;
+
+  if (CONTRACTS_CONFIGURED) {
+    if (!chainGame) {
+      phase = "loading";
+    } else {
+      const [p1, p2, completed, winner, stake] = chainGame as ChainGame;
+      onchainStake = stake;
+      onchainWinner = winner;
+      const open = p2 === zeroAddress;
+      amP1 = !!me && p1.toLowerCase() === me;
+      amP2 = !open && !!me && p2.toLowerCase() === me;
+
+      if (p1 === zeroAddress) phase = "notfound";
+      else if (amP1 || amP2) {
+        phase = completed ? "over" : open ? "waiting" : "play";
+      } else {
+        phase = completed ? "over" : open ? "invite" : "full";
+      }
+    }
+  }
+  // Once we're seated in a live room, always render the board.
+  const effectivePhase: Phase = snapshot ? "play" : phase;
+
+  const cg = CONTRACTS_CONFIGURED && chainGame ? (chainGame as ChainGame) : null;
+  const chainClaimed = cg ? Boolean(cg[5]) : false;
+  const rewardClaimed = claimed || chainClaimed;
+
+  // Per-seat avatars: each player's NFT artwork (or a wallet-derived identicon).
+  const seat0Address = snapshot?.players.find((p) => p.seat === 0)?.address;
+  const seat1Address = snapshot?.players.find((p) => p.seat === 1)?.address;
+  const seat0Avatar = useNftAvatar(seat0Address);
+  const seat1Avatar = useNftAvatar(seat1Address);
+
+  const mySeat: PlayerIndex | null = (() => {
+    if (!snapshot || !address) return null;
+    const m = snapshot.players.find((p) => p.address.toLowerCase() === address.toLowerCase());
+    return m ? m.seat : null;
+  })();
+
+  useEffect(() => {
+    log.info("game:", gameId, "phase →", effectivePhase);
+  }, [gameId, effectivePhase]);
+
+  // Connect to the socket room only once the game is playable for us.
+  useEffect(() => {
+    if (!address || joined || effectivePhase !== "play") return;
+    const socket = getSocket();
+    let cancelled = false;
+    (async () => {
+      try {
+        const ts = Date.now();
+        const signature = await signMessageAsync({ message: loginMessage(address as Address, ts) });
+        if (cancelled) return;
+        log.info("game: emitting room:join", gameId, "as", address);
+        socket.emit("room:join", { gameId, auth: { address: address as Address, ts, signature } });
+        setJoined(true);
+      } catch (e) {
+        log.error("game: login signature rejected —", e);
+        setServerError("Signature rejected — sign in to take your seat.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [address, gameId, joined, effectivePhase, signMessageAsync]);
+
+  // Socket subscriptions (always mounted; harmless before we join).
+  useEffect(() => {
+    const socket = getSocket();
+    const onRoomState = (snap: RoomSnapshot) => {
+      if (snap.gameId !== gameId) return;
+      log.info(
+        "game: room:state —",
+        snap.players.length,
+        "players, turn",
+        snap.state.turn,
+        snap.over ? "(over)" : ""
+      );
+      setSnapshot(snap);
+      setState(snap.state);
+      // Seed chat history once on (re)join so a returning player sees past
+      // messages; live messages then arrive via chat:message.
+      if (!seededChat.current) {
+        seededChat.current = true;
+        if (snap.messages?.length) setMessages(snap.messages);
+      }
+    };
+    const onMove = (b: MoveBroadcast) => {
+      if (b.gameId !== gameId) return;
+      setState(b.endState);
+      setSnapshot((s) => (s ? { ...s, clockExpiresAt: b.clockExpiresAt, state: b.endState } : s));
+    };
+    const onOver = (p: {
+      gameId: string;
+      winner: Address;
+      reason: GameOverReason;
+      txHash?: string;
+      voucher?: string;
+    }) => {
+      if (p.gameId !== gameId) return;
+      setSnapshot((s) =>
+        s
+          ? { ...s, over: { winner: p.winner, reason: p.reason, txHash: p.txHash, voucher: p.voucher } }
+          : s
+      );
+    };
+    const onChat = (m: ChatMessage) => {
+      if (m.gameId === gameId) setMessages((prev) => [...prev, m]);
+    };
+    const onError = (e: ServerError) => {
+      log.error("game: server:error —", e.code, e.message);
+      setServerError(e.message);
+    };
+
+    socket.on("room:state", onRoomState);
+    socket.on("game:move", onMove);
+    socket.on("game:over", onOver);
+    socket.on("chat:message", onChat);
+    socket.on("server:error", onError);
+    return () => {
+      socket.off("room:state", onRoomState);
+      socket.off("game:move", onMove);
+      socket.off("game:over", onOver);
+      socket.off("chat:message", onChat);
+      socket.off("server:error", onError);
+      socket.emit("room:leave", { gameId });
+    };
+  }, [gameId]);
+
+  // Track socket connectivity so the connecting screen can flag a dead server.
+  useEffect(() => {
+    const s = getSocket();
+    setSocketConnected(s.connected);
+    const on = () => setSocketConnected(true);
+    const off = () => setSocketConnected(false);
+    s.on("connect", on);
+    s.on("disconnect", off);
+    return () => {
+      s.off("connect", on);
+      s.off("disconnect", off);
+    };
+  }, []);
+
+  // If we sit in the play phase with no snapshot too long, surface why.
+  useEffect(() => {
+    if (effectivePhase !== "play" || snapshot) {
+      setWaitedTooLong(false);
+      return;
+    }
+    const t = setTimeout(() => setWaitedTooLong(true), 10000);
+    return () => clearTimeout(t);
+  }, [effectivePhase, snapshot]);
+
+  const play = useCallback(
+    (move: Move) => {
+      setServerError(null);
+      getSocket().emit("game:move", { gameId, move });
+    },
+    [gameId]
+  );
+
+  async function joinThisGame() {
+    if (!GOMOKUDAWGS_ADDRESS || !DDAWGS_TOKEN_ADDRESS || !publicClient || !address || onchainStake === null) return;
+    setActionError(null);
+    setWorking("join");
+    try {
+      const allowance = (await publicClient.readContract({
+        address: DDAWGS_TOKEN_ADDRESS,
+        abi: ERC20_ABI,
+        functionName: "allowance",
+        args: [address, GOMOKUDAWGS_ADDRESS],
+      })) as bigint;
+      if (allowance < onchainStake) {
+        const a = await writeContractAsync({
+          address: DDAWGS_TOKEN_ADDRESS,
+          abi: ERC20_ABI,
+          functionName: "approve",
+          args: [GOMOKUDAWGS_ADDRESS, onchainStake],
+        });
+        await publicClient.waitForTransactionReceipt({ hash: a });
+      }
+      const tx = await writeContractAsync({
+        address: GOMOKUDAWGS_ADDRESS,
+        abi: GOMOKU_DAWGS_ABI,
+        functionName: "joinGame",
+        args: [gameId],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      await refetchGame(); // now active → phase flips to play → socket connects
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message.split("\n")[0] : "Join failed");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function cancelGame() {
+    if (!GOMOKUDAWGS_ADDRESS || !publicClient) return;
+    setActionError(null);
+    setWorking("cancel");
+    try {
+      const tx = await writeContractAsync({
+        address: GOMOKUDAWGS_ADDRESS,
+        abi: GOMOKU_DAWGS_ABI,
+        functionName: "cancelGame",
+        args: [gameId],
+      });
+      await publicClient.waitForTransactionReceipt({ hash: tx });
+      router.push("/lobby");
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message.split("\n")[0] : "Cancel failed");
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  async function claim() {
+    if (!GOMOKUDAWGS_ADDRESS) return;
+    // The winner redeems the backend's voucher: claimRewardSigned settles the
+    // game AND pays out in this single winner-paid tx — no settlement wait.
+    const voucher = snapshot?.over?.voucher;
+    if (!voucher) {
+      setActionError("Reward voucher isn't ready yet — you can also claim from your Profile.");
+      return;
+    }
+    setActionError(null);
+    setWorking("claim");
+    log.info("claim: redeeming voucher for", gameId);
+    try {
+      const tx = await writeContractAsync({
+        address: GOMOKUDAWGS_ADDRESS,
+        abi: GOMOKU_DAWGS_ABI,
+        functionName: "claimRewardSigned",
+        args: [gameId, voucher as `0x${string}`],
+        chainId: CHAIN_ID,
+      });
+      log.info("claim: tx sent", tx);
+      if (publicClient) await publicClient.waitForTransactionReceipt({ hash: tx });
+      log.info("claim: confirmed");
+      setClaimed(true);
+      await refetchGame();
+    } catch (e) {
+      log.error("claim: failed —", e);
+      const msg = e instanceof Error ? e.message.split("\n")[0] : "Claim failed";
+      setActionError(/already claimed/i.test(msg) ? "Reward already claimed." : msg);
+    } finally {
+      setWorking(null);
+    }
+  }
+
+  function copy(kind: "code" | "link", text: string) {
+    void navigator.clipboard?.writeText(text);
+    setCopied(kind);
+    setTimeout(() => setCopied(null), 1500);
+  }
+
+  // ── pre-game screens ────────────────────────────────────────────────────
+  if (effectivePhase !== "play") {
+    const Card = ({ children }: { children: React.ReactNode }) => (
+      <div className="panel mx-auto mt-10 max-w-md space-y-4 p-8 text-center">{children}</div>
+    );
+    const Back = () => (
+      <button className="btn-outline" onClick={() => router.push("/lobby")}>
+        Back to lobby
+      </button>
+    );
+
+    if (effectivePhase === "loading") {
+      return <Card>Loading game {gameId}…</Card>;
+    }
+    if (effectivePhase === "notfound") {
+      return (
+        <Card>
+          <div className="text-4xl">🔍</div>
+          <h2 className="heading-display text-2xl">No game with that code</h2>
+          <p className="text-sm text-amber-100/60">
+            <span className="font-mono text-gold-bright">{gameId}</span> doesn&rsquo;t exist
+            (yet). Double-check the code.
+          </p>
+          <Back />
+        </Card>
+      );
+    }
+    if (effectivePhase === "full") {
+      return (
+        <Card>
+          <div className="text-4xl">🚫</div>
+          <h2 className="heading-display text-2xl">That board is taken</h2>
+          <p className="text-sm text-amber-100/60">
+            Game <span className="font-mono text-gold-bright">{gameId}</span> already has two
+            players and you aren&rsquo;t one of them.
+          </p>
+          <Back />
+        </Card>
+      );
+    }
+    if (effectivePhase === "waiting") {
+      return (
+        <Card>
+          <h2 className="heading-display text-2xl">Waiting for an opponent…</h2>
+          <p className="text-xs uppercase tracking-widest text-gold-bright/80">Gomoku · five in a row</p>
+          <p className="text-xs text-amber-100/60">Share this code (or link) to challenge someone.</p>
+          <div className="rounded-lg border border-gold/50 bg-mahogany-deep px-4 py-3 font-mono text-2xl font-bold tracking-widest text-gold-bright">
+            {gameId}
+          </div>
+          <div className="flex gap-2">
+            <button className="btn-outline flex-1" onClick={() => copy("code", gameId)}>
+              {copied === "code" ? "Copied ✓" : "Copy code"}
+            </button>
+            <button className="btn-outline flex-1" onClick={() => copy("link", inviteLink(gameId))}>
+              {copied === "link" ? "Copied ✓" : "Copy link"}
+            </button>
+          </div>
+          {onchainStake !== null && (
+            <p className="text-xs text-amber-100/50">
+              Stake {formatStake(onchainStake)} escrowed — you&rsquo;ll drop in automatically when
+              someone joins.
+            </p>
+          )}
+          {actionError && <p className="text-sm text-red-300">{actionError}</p>}
+          <button
+            className="btn-outline w-full border-red-900/60 text-red-300 hover:border-red-500"
+            disabled={working !== null}
+            onClick={cancelGame}
+          >
+            {working === "cancel" ? "Cancelling…" : "Cancel & refund"}
+          </button>
+        </Card>
+      );
+    }
+    if (effectivePhase === "invite") {
+      return (
+        <Card>
+          <div className="text-4xl">⚫️</div>
+          <h2 className="heading-display text-2xl">You&rsquo;ve been challenged</h2>
+          <p className="text-xs uppercase tracking-widest text-gold-bright/80">Gomoku · five in a row</p>
+          <p className="text-sm text-amber-100/60">
+            Game <span className="font-mono text-gold-bright">{gameId}</span>
+            {onchainStake !== null && (
+              <>
+                {" "}
+                — stake <span className="text-gold-bright">{formatStake(onchainStake)}</span>
+              </>
+            )}
+          </p>
+          <button className="btn-gold w-full" disabled={working !== null} onClick={joinThisGame}>
+            {working === "join" ? "Joining…" : "Stake & join"}
+          </button>
+          {actionError && <p className="text-sm text-red-300">{actionError}</p>}
+          <Back />
+        </Card>
+      );
+    }
+    if (effectivePhase === "over") {
+      const iWon = !!me && onchainWinner && onchainWinner.toLowerCase() === me;
+      return (
+        <Card>
+          <div className="text-4xl">🏆</div>
+          <h2 className="heading-display text-2xl">{iWon ? "You won this one" : "Game over"}</h2>
+          {onchainWinner && onchainWinner !== zeroAddress && (
+            <p className="text-sm text-amber-100/60">
+              Winner: <span className="font-mono text-gold-bright">{shortAddress(onchainWinner)}</span>
+            </p>
+          )}
+          {iWon && !rewardClaimed && (
+            <button className="btn-gold w-full" onClick={() => router.push("/profile")}>
+              Claim 80% of the pot
+            </button>
+          )}
+          {rewardClaimed && <p className="text-gold-bright">Reward claimed ✓</p>}
+          {actionError && <p className="text-sm text-red-300">{actionError}</p>}
+          <Back />
+        </Card>
+      );
+    }
+  }
+
+  // ── connecting (play phase, awaiting the room snapshot) ──
+  if (!snapshot || !state) {
+    return (
+      <div className="panel mx-auto mt-10 max-w-md space-y-3 p-10 text-center text-amber-100/60">
+        {serverError ? (
+          <p className="text-red-300">{serverError}</p>
+        ) : (
+          <p>Taking your seat at board {gameId}…</p>
+        )}
+        {waitedTooLong && !serverError && (
+          <div className="space-y-3 border-t border-gold-dim/20 pt-3 text-sm">
+            <p className="text-amber-100/70">
+              Still connecting. The game server is{" "}
+              {socketConnected ? (
+                <span className="text-emerald-400">reachable</span>
+              ) : (
+                <span className="text-red-400">not reachable</span>
+              )}
+              .
+            </p>
+            {!socketConnected && (
+              <p className="text-xs text-amber-100/50">
+                Make sure the game server is running and you opened the app at the
+                same host it allows (try <span className="text-gold">localhost:3000</span>).
+              </p>
+            )}
+            <button className="btn-outline" onClick={() => router.push("/lobby")}>
+              Back to lobby
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const myTurn = mySeat !== null && !state.gameOver && state.turn === mySeat && !snapshot.over;
+  const iWon = snapshot.over && address && snapshot.over.winner.toLowerCase() === address.toLowerCase();
+
+  const shellPlayers = snapshot.players.map((p): ShellPlayer => {
+    const isMe = address && p.address.toLowerCase() === address.toLowerCase();
+    const baseName = p.username?.trim() || shortAddress(p.address);
+    return {
+      name: isMe ? `${baseName} (you)` : baseName,
+      detail:
+        isMe && myBalance !== undefined
+          ? `${Number(formatUnits(myBalance, 18)).toLocaleString()} $DDAWGS`
+          : undefined,
+      badge: p.seat === 0 ? "1" : "2",
+      avatarSrc: p.seat === 0 ? seat0Avatar : seat1Avatar,
+      connected: p.connected,
+    };
+  }) as [ShellPlayer, ShellPlayer];
+
+  const statusText = snapshot.over
+    ? `${shortAddress(snapshot.over.winner)} wins by ${snapshot.over.reason}`
+    : myTurn
+      ? "Your move"
+      : mySeat === null
+        ? "Spectating"
+        : "Opponent's move";
+
+  // End-game modal data: who won, by what, and the amounts at stake.
+  const over = snapshot.over;
+  const winnerPlayer = over
+    ? snapshot.players.find((p) => p.address.toLowerCase() === over.winner.toLowerCase())
+    : undefined;
+  const winnerAvatar = winnerPlayer?.seat === 1 ? seat1Avatar : seat0Avatar;
+  const winnerDisplay = over
+    ? winnerPlayer?.username?.trim() || shortAddress(over.winner)
+    : "";
+  const reasonWord = over ? REASON_WORD[over.reason] : "";
+  const potWin = snapshot.stake
+    ? formatStake((BigInt(snapshot.stake) * 2n * 8000n) / 10000n)
+    : null;
+  const myStake = snapshot.stake ? formatStake(BigInt(snapshot.stake)) : null;
+
+  return (
+    <GameShell
+      state={state}
+      players={shellPlayers}
+      interactive={Boolean(myTurn)}
+      mySeat={mySeat}
+      potLabel={snapshot.stake ? formatStake(BigInt(snapshot.stake) * 2n) : null}
+      balanceLabel={myBalance !== undefined ? Number(formatUnits(myBalance, 18)).toLocaleString() : null}
+      clockExpiresAt={snapshot.over ? null : snapshot.clockExpiresAt}
+      statusText={statusText}
+      banner={serverError}
+      menuItems={[
+        ...(mySeat !== null && !snapshot.over
+          ? [
+              {
+                label: "Resign (forfeit the pot)",
+                onClick: () => getSocket().emit("game:resign", { gameId }),
+                danger: true,
+              },
+            ]
+          : []),
+        { label: "Exit to lobby", onClick: () => router.push("/lobby") },
+      ]}
+      onPlay={play}
+      chat={{
+        messages,
+        myAddress: address ?? null,
+        onSend: (text) => getSocket().emit("chat:send", { gameId, text }),
+      }}
+      overlay={
+        over ? (
+          iWon ? (
+            <WinnerPopup
+              winnerName="You"
+              avatarSrc={winnerAvatar}
+              message={`Won by ${reasonWord}`}
+              amountLabel={potWin ? `+${potWin}` : null}
+              actions={
+                <>
+                  {CONTRACTS_CONFIGURED &&
+                    !rewardClaimed &&
+                    (over.voucher ? (
+                      <button className="btn-gold" disabled={working === "claim"} onClick={claim}>
+                        {working === "claim" ? "Claiming…" : "Claim 80% of the pot"}
+                      </button>
+                    ) : (
+                      <span className="self-center text-[11px] text-amber-100/60">
+                        Preparing your reward voucher…
+                      </span>
+                    ))}
+                  {rewardClaimed && (
+                    <span className="self-center text-gold-bright">Reward claimed ✓</span>
+                  )}
+                  {actionError && (
+                    <span className="self-center text-sm text-red-300">{actionError}</span>
+                  )}
+                  <button className="btn-outline" onClick={() => router.push("/lobby")}>
+                    Back to lobby
+                  </button>
+                </>
+              }
+            />
+          ) : (
+            <WinnerPopup
+              defeated
+              winnerName={winnerDisplay}
+              avatarSrc={winnerAvatar}
+              message={`Won by ${reasonWord}`}
+              amountLabel={myStake ? `−${myStake}` : null}
+              actions={
+                <button className="btn-outline" onClick={() => router.push("/lobby")}>
+                  Back to lobby
+                </button>
+              }
+            />
+          )
+        ) : null
+      }
+    />
+  );
+}
