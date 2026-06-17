@@ -12,9 +12,8 @@ interface GomokuBoardProps {
   onPlay: (move: Move) => void;
 }
 
-// The board is drawn as an SVG so it scales crisply to any size. Stones sit on
-// the line intersections (Gomoku is played on intersections, not in cells).
-const PAD = 0.6; // padding in cell units around the grid lines
+// Pieces sit at integer grid points; cell (x,y) renders at (PAD+x, PAD+y).
+const PAD = 0.6;
 
 // Star points (handicap dots) — only on the full 15×15 Gomoku board.
 const STAR_POINTS: ReadonlyArray<[number, number]> = [
@@ -25,18 +24,21 @@ const STAR_POINTS: ReadonlyArray<[number, number]> = [
   [7, 7],
 ];
 
-/** Server-authoritative board for any variant (Gomoku 15×15, Tic-Tac-Toe 3×3,
- *  or Connect Four 7×6 with gravity). For gravity boards, clicking a column
- *  drops a stone to the lowest empty cell; otherwise clicking an empty
- *  intersection places one. Moves are sent up and the board re-renders from the
- *  next authoritative snapshot. */
+/** Server-authoritative board, themed per variant:
+ *  • Gomoku — honey-wood board, black/white stones on intersections.
+ *  • Tic-Tac-Toe — parchment board, classic X / O marks.
+ *  • Connect 4 — blue board with circular slots; drop red/yellow discs (gravity).
+ *  All share the same click/hover/resolve logic; only the look differs. */
 export default function GomokuBoard({ state, interactive, mySeat, onPlay }: GomokuBoardProps) {
   const [hover, setHover] = useState<Move | null>(null);
 
-  const { cols, rows, gravity, board } = state;
+  const { cols, rows, gravity, board, variant } = state;
+  const isTTT = variant === "tictactoe";
+  const isC4 = variant === "connect4";
+  const isGomoku = variant === "gomoku";
+
   const spanX = cols - 1 + PAD * 2;
   const spanY = rows - 1 + PAD * 2;
-  const showStars = state.variant === "gomoku";
   const last = state.lastMove;
   const winSet = useMemo(() => {
     const s = new Set<number>();
@@ -44,8 +46,8 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
     return s;
   }, [state.winningLine, cols]);
 
-  // Where a click on cell (x, y) would actually land — the cell itself, or the
-  // bottom of the column for gravity variants. Null if it isn't playable.
+  // Where a click on cell (x, y) would land — the cell itself, or the bottom of
+  // the column for gravity variants. Null if not playable.
   const resolveTarget = (x: number, y: number): Move | null => {
     if (!interactive || state.gameOver) return null;
     if (gravity) {
@@ -55,8 +57,55 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
     return board[idx(x, y, cols)] === null ? { x, y } : null;
   };
 
-  // Stone fill for a seat: black plays first (seat 0), white second (seat 1).
-  const stoneFill = (seat: 0 | 1) => (seat === 0 ? "url(#stone-black)" : "url(#stone-white)");
+  // Render a placed piece (or a translucent ghost) for the given seat.
+  const piece = (seat: 0 | 1, cx: number, cy: number, opts: { ghost?: boolean; win?: boolean }) => {
+    const op = opts.ghost ? 0.4 : 1;
+    if (isTTT) {
+      const r = 0.3;
+      const winHalo = opts.win ? <circle cx={cx} cy={cy} r="0.44" fill="rgba(232,197,71,0.3)" /> : null;
+      return seat === 0 ? (
+        <g opacity={op}>
+          {winHalo}
+          <line x1={cx - r} y1={cy - r} x2={cx + r} y2={cy + r} stroke="#b5202a" strokeWidth="0.14" strokeLinecap="round" />
+          <line x1={cx - r} y1={cy + r} x2={cx + r} y2={cy - r} stroke="#b5202a" strokeWidth="0.14" strokeLinecap="round" />
+        </g>
+      ) : (
+        <g opacity={op}>
+          {winHalo}
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1f5fa8" strokeWidth="0.14" />
+        </g>
+      );
+    }
+    if (isC4) {
+      return (
+        <circle
+          cx={cx}
+          cy={cy}
+          r="0.4"
+          fill={seat === 0 ? "url(#disc-red)" : "url(#disc-yellow)"}
+          stroke={opts.win ? "#e8c33a" : "rgba(0,0,0,0.25)"}
+          strokeWidth={opts.win ? "0.1" : "0.03"}
+          opacity={op}
+        />
+      );
+    }
+    // Gomoku stones
+    return (
+      <g opacity={op}>
+        {!opts.ghost && (
+          <circle cx={cx} cy={cy} r="0.42" fill="rgba(0,0,0,0.28)" transform="translate(0.02,0.03)" />
+        )}
+        <circle
+          cx={cx}
+          cy={cy}
+          r="0.42"
+          fill={seat === 0 ? "url(#stone-black)" : "url(#stone-white)"}
+          stroke={opts.win ? "#e8c33a" : "none"}
+          strokeWidth={opts.win ? "0.1" : "0"}
+        />
+      </g>
+    );
+  };
 
   return (
     <div className="relative flex h-full max-h-full w-full max-w-full items-center justify-center">
@@ -64,7 +113,7 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
         viewBox={`0 0 ${spanX} ${spanY}`}
         className="h-full w-full rounded-lg"
         role="grid"
-        aria-label={`${state.variant} board`}
+        aria-label={`${variant} board`}
       >
         <defs>
           <radialGradient id="stone-black" cx="35%" cy="30%" r="75%">
@@ -77,47 +126,76 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
             <stop offset="70%" stopColor="#ece6d8" />
             <stop offset="100%" stopColor="#c7bda4" />
           </radialGradient>
+          <radialGradient id="disc-red" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stopColor="#ff6b62" />
+            <stop offset="55%" stopColor="#d9302d" />
+            <stop offset="100%" stopColor="#9c1714" />
+          </radialGradient>
+          <radialGradient id="disc-yellow" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stopColor="#ffe88a" />
+            <stop offset="55%" stopColor="#f1c40f" />
+            <stop offset="100%" stopColor="#b8900a" />
+          </radialGradient>
           <linearGradient id="board-wood" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stopColor="#e7b766" />
             <stop offset="100%" stopColor="#caa052" />
           </linearGradient>
+          <linearGradient id="board-parchment" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#f4ead0" />
+            <stop offset="100%" stopColor="#e4d2a6" />
+          </linearGradient>
+          <linearGradient id="board-blue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#2c5be0" />
+            <stop offset="100%" stopColor="#16379c" />
+          </linearGradient>
         </defs>
 
-        {/* Wood field */}
-        <rect x="0" y="0" width={spanX} height={spanY} rx="0.4" fill="url(#board-wood)" />
+        {/* Board field */}
+        <rect
+          x="0"
+          y="0"
+          width={spanX}
+          height={spanY}
+          rx="0.4"
+          fill={isTTT ? "url(#board-parchment)" : isC4 ? "url(#board-blue)" : "url(#board-wood)"}
+        />
 
         {/* Column highlight (gravity variants) */}
         {gravity && hover && (
-          <rect
-            x={PAD + hover.x - 0.5}
-            y={PAD - 0.5}
-            width="1"
-            height={rows}
-            fill="#ffffff"
-            opacity="0.07"
-          />
+          <rect x={PAD + hover.x - 0.5} y={PAD - 0.5} width="1" height={rows} fill="#ffffff" opacity="0.1" />
         )}
 
-        {/* Grid lines */}
-        <g stroke="#3a2a14" strokeWidth="0.04" strokeLinecap="round">
-          {Array.from({ length: rows }, (_, i) => (
-            <line key={`h${i}`} x1={PAD} y1={PAD + i} x2={PAD + cols - 1} y2={PAD + i} />
-          ))}
-          {Array.from({ length: cols }, (_, i) => (
-            <line key={`v${i}`} x1={PAD + i} y1={PAD} x2={PAD + i} y2={PAD + rows - 1} />
-          ))}
-        </g>
-
-        {/* Star points (Gomoku only) */}
-        {showStars && (
-          <g fill="#3a2a14">
-            {STAR_POINTS.map(([x, y]) => (
-              <circle key={`${x}-${y}`} cx={PAD + x} cy={PAD + y} r="0.1" />
+        {/* Grid */}
+        {isGomoku && (
+          <>
+            <g stroke="#3a2a14" strokeWidth="0.04" strokeLinecap="round">
+              {Array.from({ length: rows }, (_, i) => (
+                <line key={`h${i}`} x1={PAD} y1={PAD + i} x2={PAD + cols - 1} y2={PAD + i} />
+              ))}
+              {Array.from({ length: cols }, (_, i) => (
+                <line key={`v${i}`} x1={PAD + i} y1={PAD} x2={PAD + i} y2={PAD + rows - 1} />
+              ))}
+            </g>
+            <g fill="#3a2a14">
+              {STAR_POINTS.map(([x, y]) => (
+                <circle key={`${x}-${y}`} cx={PAD + x} cy={PAD + y} r="0.1" />
+              ))}
+            </g>
+          </>
+        )}
+        {isTTT && (
+          // Classic noughts-and-crosses grid: inner lines only, no outer border.
+          <g stroke="#5a4a2a" strokeWidth="0.07" strokeLinecap="round">
+            {Array.from({ length: cols - 1 }, (_, i) => (
+              <line key={`v${i}`} x1={PAD + i + 0.5} y1={PAD - 0.4} x2={PAD + i + 0.5} y2={PAD + rows - 0.6} />
+            ))}
+            {Array.from({ length: rows - 1 }, (_, i) => (
+              <line key={`h${i}`} x1={PAD - 0.4} y1={PAD + i + 0.5} x2={PAD + cols - 0.6} y2={PAD + i + 0.5} />
             ))}
           </g>
         )}
 
-        {/* Stones + click targets */}
+        {/* Pieces + click targets */}
         {Array.from({ length: rows }, (_, y) =>
           Array.from({ length: cols }, (_, x) => {
             const cell = board[idx(x, y, cols)];
@@ -127,39 +205,32 @@ export default function GomokuBoard({ state, interactive, mySeat, onPlay }: Gomo
             const isWin = winSet.has(idx(x, y, cols));
             const target = resolveTarget(x, y);
             const playable = target !== null;
-            // Ghost shows at the landing cell (this cell for placement games, or
-            // the column's drop cell for gravity games).
             const isGhost =
               hover != null && target != null && target.x === hover.x && target.y === hover.y;
             return (
               <g key={`${x}-${y}`}>
+                {/* Connect 4: empty slot punched in the blue board */}
+                {isC4 && cell === null && <circle cx={cx} cy={cy} r="0.4" fill="#0f1733" />}
+
                 {cell !== null && (
                   <>
-                    <circle cx={cx} cy={cy} r="0.42" fill="rgba(0,0,0,0.28)" transform="translate(0.02,0.03)" />
-                    <circle
-                      cx={cx}
-                      cy={cy}
-                      r="0.42"
-                      fill={stoneFill(cell)}
-                      stroke={isWin ? "#e8c33a" : "none"}
-                      strokeWidth={isWin ? "0.1" : "0"}
-                    />
-                    {isLast && !state.gameOver && (
+                    {piece(cell, cx, cy, { win: isWin })}
+                    {isLast && !state.gameOver && !isTTT && (
                       <circle
                         cx={cx}
                         cy={cy}
                         r="0.12"
                         fill="none"
-                        stroke={cell === 0 ? "#f5efe0" : "#c0202a"}
+                        stroke={cell === 0 ? "#f5efe0" : isC4 ? "#101010" : "#c0202a"}
                         strokeWidth="0.05"
                       />
                     )}
                   </>
                 )}
-                {/* Hover ghost stone at the landing cell */}
-                {isGhost && mySeat != null && cell === null && (
-                  <circle cx={cx} cy={cy} r="0.4" fill={stoneFill(mySeat)} opacity="0.4" />
-                )}
+
+                {/* Hover ghost at the landing cell */}
+                {isGhost && mySeat != null && cell === null && piece(mySeat, cx, cy, { ghost: true })}
+
                 {/* Invisible hit area */}
                 <rect
                   x={cx - 0.5}

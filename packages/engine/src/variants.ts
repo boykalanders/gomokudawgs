@@ -47,7 +47,7 @@ export const VARIANTS: Record<GameVariant, VariantSpec> = {
   },
   connect4: {
     key: "connect4",
-    label: "Connect Four",
+    label: "Connect 4",
     cols: 7,
     rows: 6,
     winLength: 4,

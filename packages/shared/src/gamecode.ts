@@ -36,9 +36,10 @@ export function newGameCode(variant: GameVariant = DEFAULT_VARIANT): string {
   return `${prefix}-${s}`;
 }
 
-/** Which variant a gameId encodes (by its prefix); defaults to Gomoku. */
+/** Which variant a gameId encodes (by its prefix); defaults to Gomoku.
+ *  Prefixes can be alphanumeric (e.g. "C4"), so match letters AND digits. */
 export function variantFromId(gameId: string): GameVariant {
-  const m = gameId.toUpperCase().match(/^([A-Z]{2})-/);
+  const m = gameId.toUpperCase().match(/^([A-Z0-9]{2})-/);
   if (m) return variantByPrefix(m[1]) ?? DEFAULT_VARIANT;
   return DEFAULT_VARIANT;
 }
@@ -50,8 +51,8 @@ export function normalizeCode(input: string): string {
   if (fromLink) t = decodeURIComponent(fromLink[1]);
   t = t.toUpperCase().replace(/\s+/g, "");
   if (!t) return "";
-  // A known variant prefix → keep it as-is.
-  const m = t.match(/^([A-Z]{2})-(.+)$/);
+  // A known variant prefix (alphanumeric, e.g. "C4") → keep it as-is.
+  const m = t.match(/^([A-Z0-9]{2})-(.+)$/);
   if (m && variantByPrefix(m[1])) return `${m[1]}-${m[2]}`;
   // Bare body or unknown prefix → assume the default variant.
   const body = t.includes("-") ? t.split("-").slice(1).join("-") : t;

@@ -44,6 +44,9 @@ interface GameShellProps {
   clockExpiresAt?: number | null;
   statusText: string;
   banner?: string | null;
+  /** Optional control pinned to the top-centre of the board (e.g. a practice
+   *  variant picker). Sits where the move clock would; pages use one or other. */
+  topBadge?: ReactNode;
   menuItems: ShellMenuItem[];
   onPlay: (move: Move) => void;
   chat?: {
@@ -66,6 +69,7 @@ export default function GameShell({
   clockExpiresAt,
   statusText,
   banner,
+  topBadge,
   menuItems,
   onPlay,
   chat,
@@ -156,6 +160,7 @@ export default function GameShell({
             badge={players[0].badge}
             avatarSrc={players[0].avatarSrc}
             seat={0}
+            variant={state.variant}
             isTurn={!state.gameOver && state.turn === 0}
             connected={players[0].connected ?? true}
           />
@@ -169,6 +174,7 @@ export default function GameShell({
             badge={players[1].badge}
             avatarSrc={players[1].avatarSrc}
             seat={1}
+            variant={state.variant}
             isTurn={!state.gameOver && state.turn === 1}
             connected={players[1].connected ?? true}
             flip
@@ -199,6 +205,10 @@ export default function GameShell({
               <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2">
                 <MoveClock expiresAt={clockExpiresAt} />
               </div>
+            )}
+
+            {topBadge && (
+              <div className="absolute left-1/2 top-2 z-10 -translate-x-1/2">{topBadge}</div>
             )}
 
             {banner && (

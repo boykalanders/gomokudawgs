@@ -79,11 +79,46 @@ export default function PracticePage() {
     []
   );
 
+  // Piece word for the player on turn, per variant.
+  const seatWord = (seat: 0 | 1) =>
+    state.variant === "tictactoe"
+      ? seat === 0
+        ? "X"
+        : "O"
+      : state.variant === "connect4"
+        ? seat === 0
+          ? "red"
+          : "yellow"
+        : seat === 0
+          ? "black"
+          : "white";
+
   const turnLabel = state.gameOver
     ? state.winner !== null
       ? `🏆 ${PLAYERS[state.winner].name} wins!`
       : "Draw — board full"
-    : `${PLAYERS[state.turn].name} to move (${state.turn === 0 ? "black" : "white"})`;
+    : `${PLAYERS[state.turn].name} to move (${seatWord(state.turn)})`;
+
+  // Visible variant picker pinned to the top of the practice board.
+  const variantPicker = (
+    <div className="flex gap-1 rounded-full border border-gold-dim/40 bg-black/75 p-1 shadow">
+      {VARIANT_LIST.map((v) => (
+        <button
+          key={v.key}
+          type="button"
+          onClick={() => selectVariant(v.key)}
+          aria-pressed={variant === v.key}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+            variant === v.key
+              ? "bg-gold-sheen text-emerald-deep"
+              : "text-cream/70 hover:text-gold-bright"
+          }`}
+        >
+          {v.label}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <GameShell
@@ -99,33 +134,48 @@ export default function PracticePage() {
       clockExpiresAt={null}
       statusText={turnLabel}
       banner={message}
+      topBadge={variantPicker}
       menuItems={[
         { label: "New game", onClick: () => reset() },
-        ...VARIANT_LIST.filter((v) => v.key !== variant).map((v) => ({
-          label: `Switch to ${v.label}`,
-          onClick: () => selectVariant(v.key),
-        })),
         { label: "Exit to lobby", onClick: () => router.push("/lobby") },
       ]}
       onPlay={play}
       overlay={
-        state.gameOver && state.winner !== null ? (
-          <WinnerPopup
-            winnerName={PLAYERS[state.winner].name}
-            avatarSrc={PLAYERS[state.winner].avatarSrc}
-            message={`wins (${wins[0]}–${wins[1]})`}
-            amountLabel="+200.00 $DDAWGS"
-            actions={
-              <>
-                <button className="btn-gold" onClick={() => reset()}>
-                  Play again
-                </button>
-                <button className="btn-outline" onClick={() => router.push("/lobby")}>
-                  Lobby
-                </button>
-              </>
-            }
-          />
+        state.gameOver ? (
+          state.winner !== null ? (
+            <WinnerPopup
+              winnerName={PLAYERS[state.winner].name}
+              avatarSrc={PLAYERS[state.winner].avatarSrc}
+              message={`wins (${wins[0]}–${wins[1]})`}
+              amountLabel="+200.00 $DDAWGS"
+              actions={
+                <>
+                  <button className="btn-gold" onClick={() => reset()}>
+                    Play again
+                  </button>
+                  <button className="btn-outline" onClick={() => router.push("/lobby")}>
+                    Lobby
+                  </button>
+                </>
+              }
+            />
+          ) : (
+            <WinnerPopup
+              draw
+              winnerName="Draw"
+              message="No line — the board is full"
+              actions={
+                <>
+                  <button className="btn-gold" onClick={() => reset()}>
+                    Play again
+                  </button>
+                  <button className="btn-outline" onClick={() => router.push("/lobby")}>
+                    Lobby
+                  </button>
+                </>
+              }
+            />
+          )
         ) : null
       }
     />

@@ -3,6 +3,7 @@ import { io as ioc, type Socket } from "socket.io-client";
 import { Wallet } from "ethers";
 import {
   loginMessage,
+  variantFromId,
   type Address,
   type AuthPayload,
   type ClientToServerEvents,
@@ -11,6 +12,18 @@ import {
 } from "@rowdawgs/shared";
 import { createRowDawgsServer, type RowDawgsServer } from "./server.js";
 import type { ServerConfig } from "./config.js";
+
+// Regression guard: the server builds each room's board from the gameId prefix,
+// so the prefix→variant map must hold. "C4" has a DIGIT — a letters-only regex
+// silently made Connect 4 fall back to Gomoku.
+describe("variantFromId (code prefix → variant)", () => {
+  it("maps each prefix, incl. the alphanumeric C4", () => {
+    expect(variantFromId("GK-ABCDE")).toBe("gomoku");
+    expect(variantFromId("TT-ABCDE")).toBe("tictactoe");
+    expect(variantFromId("C4-ABCDE")).toBe("connect4");
+    expect(variantFromId("dev-room")).toBe("gomoku"); // unknown → default
+  });
+});
 
 type TestClient = Socket<ServerToClientEvents, ClientToServerEvents>;
 

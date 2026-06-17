@@ -362,6 +362,38 @@ function GameRoom() {
     }
   }
 
+  async function claimDraw() {
+    if (!ROWDAWGS_ADDRESS) return;
+    // On a draw either player redeems the backend's Draw voucher via
+    // claimDrawSigned for their 40% share (10% company, 10% burned).
+    const voucher = snapshot?.over?.voucher;
+    if (!voucher) {
+      setActionError("Draw voucher isn't ready yet — reconnect and try again.");
+      return;
+    }
+    setActionError(null);
+    setWorking("claim");
+    log.info("claimDraw: redeeming voucher for", gameId);
+    try {
+      const tx = await writeContractAsync({
+        address: ROWDAWGS_ADDRESS,
+        abi: ROW_DAWGS_ABI,
+        functionName: "claimDrawSigned",
+        args: [gameId, voucher as `0x${string}`],
+        chainId: CHAIN_ID,
+      });
+      if (publicClient) await publicClient.waitForTransactionReceipt({ hash: tx });
+      setClaimed(true);
+      await refetchGame();
+    } catch (e) {
+      log.error("claimDraw: failed —", e);
+      const msg = e instanceof Error ? e.message.split("\n")[0] : "Claim failed";
+      setActionError(/already claimed/i.test(msg) ? "Your share is already claimed." : msg);
+    } finally {
+      setWorking(null);
+    }
+  }
+
   function copy(kind: "code" | "link", text: string) {
     void navigator.clipboard?.writeText(text);
     setCopied(kind);
@@ -564,8 +596,13 @@ function GameRoom() {
     ? winnerPlayer?.username?.trim() || shortAddress(over.winner)
     : "";
   const reasonWord = over ? reasonWordFor(over.reason, state.winLength) : "";
+  const isDraw = over?.reason === "draw";
   const potWin = snapshot.stake
     ? formatStake((BigInt(snapshot.stake) * 2n * 8000n) / 10000n)
+    : null;
+  // Each player's 40% draw share (40% of the 2-stake pot).
+  const drawShare = snapshot.stake
+    ? formatStake((BigInt(snapshot.stake) * 2n * 4000n) / 10000n)
     : null;
   const myStake = snapshot.stake ? formatStake(BigInt(snapshot.stake)) : null;
 
@@ -600,7 +637,38 @@ function GameRoom() {
       }}
       overlay={
         over ? (
-          iWon ? (
+          isDraw ? (
+            <WinnerPopup
+              draw
+              winnerName="Draw"
+              message="Each player takes 40% of the pot"
+              amountLabel={drawShare ? `+${drawShare}` : null}
+              actions={
+                <>
+                  {CONTRACTS_CONFIGURED &&
+                    !rewardClaimed &&
+                    (over.voucher ? (
+                      <button className="btn-gold" disabled={working === "claim"} onClick={claimDraw}>
+                        {working === "claim" ? "Claiming…" : "Claim 40% of the pot"}
+                      </button>
+                    ) : (
+                      <span className="self-center text-[11px] text-amber-100/60">
+                        Preparing your draw voucher…
+                      </span>
+                    ))}
+                  {rewardClaimed && (
+                    <span className="self-center text-gold-bright">Share claimed ✓</span>
+                  )}
+                  {actionError && (
+                    <span className="self-center text-sm text-red-300">{actionError}</span>
+                  )}
+                  <button className="btn-outline" onClick={() => router.push("/lobby")}>
+                    Back to lobby
+                  </button>
+                </>
+              }
+            />
+          ) : iWon ? (
             <WinnerPopup
               winnerName="You"
               avatarSrc={winnerAvatar}

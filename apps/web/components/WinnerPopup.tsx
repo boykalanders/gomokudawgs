@@ -15,10 +15,12 @@ interface EndGameModalProps {
   actions?: ReactNode;
   /** Render the somber Defeat variant (loser's view) instead of Victory. */
   defeated?: boolean;
+  /** Render the neutral Draw variant (both players take 40%). */
+  draw?: boolean;
 }
 
-/** End-of-frame modal — celebratory Victory for the winner, somber Defeat for
- *  the loser. Both show who took the pot; only Victory carries the claim. */
+/** End-of-game modal — celebratory Victory for the winner, somber Defeat for
+ *  the loser, neutral Draw when the board fills with no line. */
 export default function WinnerPopup({
   winnerName,
   avatarSrc,
@@ -26,7 +28,29 @@ export default function WinnerPopup({
   amountLabel,
   actions,
   defeated = false,
+  draw = false,
 }: EndGameModalProps) {
+  if (draw) {
+    return (
+      <div
+        data-testid="draw-popup"
+        className="relative max-w-md overflow-hidden rounded-2xl border-2 border-gold/70 bg-gradient-to-b from-mahogany-dark via-black/95 to-black px-10 py-7 text-center shadow-[0_0_40px_rgba(201,162,39,0.35)]"
+      >
+        <div className="text-5xl opacity-90">🤝</div>
+        <h2 className="heading-display mt-2 text-3xl font-extrabold tracking-[0.2em]">DRAW</h2>
+        <p className="mt-2 text-sm uppercase tracking-widest text-amber-100/70">{message}</p>
+        {amountLabel && (
+          <p className="mx-auto mt-3 flex w-fit items-center gap-2 rounded-full border border-gold/60 bg-black/70 px-4 py-1.5 font-mono text-lg font-bold text-gold-bright">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/assets/token.svg" alt="" className="h-5 w-5" draggable={false} />
+            {amountLabel}
+          </p>
+        )}
+        {actions && <div className="mt-5 flex justify-center gap-3">{actions}</div>}
+      </div>
+    );
+  }
+
   if (defeated) {
     return (
       <div
