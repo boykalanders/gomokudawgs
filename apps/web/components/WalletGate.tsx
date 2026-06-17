@@ -52,7 +52,7 @@ export default function WalletGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (CONTRACTS_CONFIGURED && address && !isLoading) {
-      log.info("gate: ownsNFT =", owns, "(pool pass or ChessDawgs NFT)");
+      log.info("gate: ownsNFT =", owns, "(membership pass or ChessDawgs NFT)");
     }
   }, [owns, isLoading, address]);
 

@@ -13,12 +13,12 @@ body {
   @apply bg-emerald-deep font-sans text-cream antialiased;
   background-image: radial-gradient(
       ellipse at 50% -15%,
-      rgba(201, 162, 39, 0.1),
+      rgba(201, 162, 39, 0.12),
       transparent 55%
     ),
-    radial-gradient(ellipse at 50% 120%, rgba(11, 61, 46, 0.55), transparent 60%),
-    linear-gradient(165deg, #07170f 0%, #061109 55%, #040c08 100%);
-  background-color: #06130d;
+    radial-gradient(ellipse at 50% 120%, rgba(110, 74, 40, 0.45), transparent 60%),
+    linear-gradient(165deg, #1c1308 0%, #140d05 55%, #0c0703 100%);
+  background-color: #170e05;
   min-height: 100vh;
 }
 
@@ -26,12 +26,12 @@ body {
   @apply rounded-xl border border-gold-dim/30 shadow-lg;
   background-image: linear-gradient(
     180deg,
-    rgba(18, 58, 44, 0.55) 0%,
-    rgba(12, 36, 27, 0.85) 100%
+    rgba(58, 38, 19, 0.6) 0%,
+    rgba(36, 23, 12, 0.88) 100%
   );
   box-shadow:
-    0 10px 30px -12px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(232, 197, 71, 0.06);
+    0 10px 30px -12px rgba(0, 0, 0, 0.72),
+    inset 0 1px 0 rgba(232, 197, 71, 0.07);
 }
 
 /* Hairline gold-leaf top accent for premium panels. */

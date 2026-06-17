@@ -1,9 +1,10 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Deputy Dawgs / Chess Dawgs premium theme — deep emerald chess-felt surfaces,
- * metallic gold trim, cream type. The "mahogany"/"gunmetal" token names are
- * kept (now mapped to emerald shades) so the whole app reskins from one place.
+ * Deputy Dawgs / Gomoku Dawgs premium theme — classic warm-wood surfaces (dark
+ * stained walnut cabinet around a honey-oak playing board), metallic gold trim,
+ * cream type. The "emerald"/"mahogany"/"gunmetal" token names are kept (now
+ * mapped to wood shades) so the whole app reskins from one place.
  */
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
@@ -16,19 +17,20 @@ const config: Config = {
         desktop: { raw: "(pointer: fine)" },
       },
       colors: {
-        // Surface ramp (deep → light), formerly mahogany — now emerald.
+        // Surface ramp (deep → light) — stained walnut.
         mahogany: {
-          DEFAULT: "#0e2a20",
-          dark: "#0a2017",
-          deep: "#06130d",
+          DEFAULT: "#3a2613",
+          dark: "#2a1c0e",
+          deep: "#170e05",
         },
+        // "emerald" names kept for the reskin; now warm-wood values.
         emerald: {
-          felt: "#0b3d2e",
-          deep: "#06130d",
-          panel: "#0c241b",
-          rail: "#124a37",
+          felt: "#6b4a26", // mid table wood
+          deep: "#170e05", // espresso (page / box background)
+          panel: "#2a1b0d", // dark walnut panel
+          rail: "#7a5230", // lighter rail / frame wood
         },
-        walnut: "#0c2419",
+        walnut: "#241708",
         gold: {
           DEFAULT: "#c9a227",
           bright: "#e8c547",
@@ -39,14 +41,14 @@ const config: Config = {
           dim: "#d8cba8",
         },
         cloth: {
-          emerald: "#0b3d2e",
-          midnight: "#102a43",
-          crimson: "#4a1220",
+          emerald: "#5a3d1f", // honey board wood
+          midnight: "#2a2018",
+          crimson: "#4a1a12",
         },
-        // Panels — emerald gunmetal.
+        // Panels — walnut gunmetal.
         gunmetal: {
-          DEFAULT: "#123a2c",
-          dark: "#0c241b",
+          DEFAULT: "#33240f",
+          dark: "#241708",
         },
         burn: "#ff6b35",
       },
@@ -58,15 +60,15 @@ const config: Config = {
         "gold-glow": "0 0 12px rgba(201, 162, 39, 0.45)",
         "pocket-glow": "0 0 18px rgba(232, 197, 71, 0.6)",
         "burn-glow": "0 0 14px rgba(255, 107, 53, 0.55)",
-        "felt-inset": "inset 0 1px 0 rgba(232,197,71,0.08), inset 0 0 40px rgba(0,0,0,0.45)",
+        "felt-inset": "inset 0 1px 0 rgba(232,197,71,0.1), inset 0 0 44px rgba(0,0,0,0.5)",
       },
       backgroundImage: {
         "wood-grain":
-          "linear-gradient(160deg, #124a37 0%, #0b3d2e 45%, #06130d 100%)",
+          "linear-gradient(160deg, #6e4a28 0%, #3a2613 45%, #170e05 100%)",
         "gold-sheen":
           "linear-gradient(110deg, #8a6d1d 0%, #e8c547 50%, #8a6d1d 100%)",
         "felt-radial":
-          "radial-gradient(ellipse at 50% 35%, #0f4634 0%, #0b3d2e 45%, #072017 100%)",
+          "radial-gradient(ellipse at 50% 35%, #7a5230 0%, #4a3018 45%, #1c1207 100%)",
       },
     },
   },

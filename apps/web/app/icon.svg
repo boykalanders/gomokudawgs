@@ -1,47 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <radialGradient id="coin" cx="0.4" cy="0.32" r="0.9">
-      <stop offset="0" stop-color="#f0d77b"/>
-      <stop offset="0.55" stop-color="#c9a227"/>
-      <stop offset="1" stop-color="#8a6d1d"/>
+    <linearGradient id="board" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e7b766"/>
+      <stop offset="100%" stop-color="#c69a4e"/>
+    </linearGradient>
+    <radialGradient id="black" cx="35%" cy="30%" r="78%">
+      <stop offset="0" stop-color="#5c5c5c"/><stop offset="45%" stop-color="#1b1b1b"/><stop offset="100%" stop-color="#000"/>
     </radialGradient>
-    <radialGradient id="inner" cx="0.42" cy="0.36" r="0.95">
-      <stop offset="0" stop-color="#d9b54a"/>
-      <stop offset="1" stop-color="#a07f22"/>
+    <radialGradient id="white" cx="35%" cy="30%" r="82%">
+      <stop offset="0" stop-color="#fff"/><stop offset="70%" stop-color="#ece6d8"/><stop offset="100%" stop-color="#c7bda4"/>
     </radialGradient>
   </defs>
-  <circle cx="50" cy="50" r="48" fill="url(#coin)"/>
-  <circle cx="50" cy="50" r="40" fill="url(#inner)" stroke="#7a611a" stroke-width="1.5"/>
-  <circle cx="94.0" cy="50.0" r="1.8" fill="#7a611a"/>
-  <circle cx="92.5" cy="61.4" r="1.8" fill="#7a611a"/>
-  <circle cx="88.1" cy="72.0" r="1.8" fill="#7a611a"/>
-  <circle cx="81.1" cy="81.1" r="1.8" fill="#7a611a"/>
-  <circle cx="72.0" cy="88.1" r="1.8" fill="#7a611a"/>
-  <circle cx="61.4" cy="92.5" r="1.8" fill="#7a611a"/>
-  <circle cx="50.0" cy="94.0" r="1.8" fill="#7a611a"/>
-  <circle cx="38.6" cy="92.5" r="1.8" fill="#7a611a"/>
-  <circle cx="28.0" cy="88.1" r="1.8" fill="#7a611a"/>
-  <circle cx="18.9" cy="81.1" r="1.8" fill="#7a611a"/>
-  <circle cx="11.9" cy="72.0" r="1.8" fill="#7a611a"/>
-  <circle cx="7.5" cy="61.4" r="1.8" fill="#7a611a"/>
-  <circle cx="6.0" cy="50.0" r="1.8" fill="#7a611a"/>
-  <circle cx="7.5" cy="38.6" r="1.8" fill="#7a611a"/>
-  <circle cx="11.9" cy="28.0" r="1.8" fill="#7a611a"/>
-  <circle cx="18.9" cy="18.9" r="1.8" fill="#7a611a"/>
-  <circle cx="28.0" cy="11.9" r="1.8" fill="#7a611a"/>
-  <circle cx="38.6" cy="7.5" r="1.8" fill="#7a611a"/>
-  <circle cx="50.0" cy="6.0" r="1.8" fill="#7a611a"/>
-  <circle cx="61.4" cy="7.5" r="1.8" fill="#7a611a"/>
-  <circle cx="72.0" cy="11.9" r="1.8" fill="#7a611a"/>
-  <circle cx="81.1" cy="18.9" r="1.8" fill="#7a611a"/>
-  <circle cx="88.1" cy="28.0" r="1.8" fill="#7a611a"/>
-  <circle cx="92.5" cy="38.6" r="1.8" fill="#7a611a"/>
-  <g fill="#2a1c0d">
-    <ellipse cx="50" cy="60" rx="15" ry="12"/>
-    <circle cx="35" cy="44" r="6"/>
-    <circle cx="45" cy="38" r="6"/>
-    <circle cx="55" cy="38" r="6"/>
-    <circle cx="65" cy="44" r="6"/>
+  <rect x="4" y="4" width="92" height="92" rx="16" fill="url(#board)" stroke="#8a6d1d" stroke-width="3"/>
+  <g stroke="#3a2a14" stroke-width="3" stroke-linecap="round" opacity="0.85">
+    <line x1="30" y1="22" x2="30" y2="78"/>
+    <line x1="50" y1="22" x2="50" y2="78"/>
+    <line x1="70" y1="22" x2="70" y2="78"/>
+    <line x1="22" y1="30" x2="78" y2="30"/>
+    <line x1="22" y1="50" x2="78" y2="50"/>
+    <line x1="22" y1="70" x2="78" y2="70"/>
   </g>
-  <ellipse cx="38" cy="26" rx="14" ry="6" transform="rotate(-28 38 26)" fill="rgba(255,244,200,0.5)"/>
+  <circle cx="38" cy="62" r="15" fill="url(#black)"/>
+  <circle cx="62" cy="40" r="15" fill="url(#white)" stroke="#9a8a66" stroke-width="0.6"/>
 </svg>

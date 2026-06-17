@@ -59,7 +59,7 @@ export default function WinnerPopup({
           </p>
         )}
 
-        <p className="mt-3 text-xs italic text-amber-100/40">Rack &rsquo;em up and run it back.</p>
+        <p className="mt-3 text-xs italic text-amber-100/40">Reset the stones and run it back.</p>
 
         {actions && <div className="mt-4 flex justify-center gap-3">{actions}</div>}
       </div>
